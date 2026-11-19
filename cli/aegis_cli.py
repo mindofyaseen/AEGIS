@@ -12,7 +12,10 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from backend.orchestration.investigator import AegisInvestigator
-from backend.models import InvestigationReport, Verdict
+from backend.models import InvestigationReport, Verdict, Severity
+from services.change_analysis.cloudformation_parser import CloudFormationAnalyzer
+from services.integration.github_bot import GitHubPRBot
+from services.integration.webhook_notifier import WebhookNotifier
 
 
 class AegisCLI:
@@ -140,6 +143,12 @@ class AegisCLI:
             help="Path to Terraform Plan JSON (generated via `terraform show -json tfplan`)",
         )
         parser.add_argument(
+            "--cfn-template",
+            type=Path,
+            required=False,
+            help="Path to AWS CloudFormation / SAM / CDK JSON or YAML template",
+        )
+        parser.add_argument(
             "--topology",
             type=Path,
             required=False,
@@ -152,7 +161,7 @@ class AegisCLI:
         )
         parser.add_argument(
             "--format",
-            choices=["console", "markdown", "json"],
+            choices=["console", "markdown", "json", "github-pr", "slack", "discord"],
             default="console",
             help="Output formatting (default: console)",
         )
@@ -183,11 +192,34 @@ class AegisCLI:
             terraform_plan_data=tf_plan_data,
         )
 
+        # 3.1 Check CloudFormation Template if supplied
+        if args.cfn_template:
+            if not args.cfn_template.exists():
+                raise FileNotFoundError(f"CloudFormation file not found: {args.cfn_template}")
+            with open(args.cfn_template, "r", encoding="utf-8") as f:
+                cfn_content = f.read()
+            cfn_findings = CloudFormationAnalyzer().analyze(cfn_content)
+            if cfn_findings:
+                report.findings.extend(cfn_findings)
+                report.total_findings += len(cfn_findings)
+                cfn_crit = sum(1 for cf in cfn_findings if cf.severity == Severity.CRITICAL)
+                report.critical_findings += cfn_crit
+                if cfn_crit > 0:
+                    report.verdict = Verdict.BLOCK
+                    report.verdict_reason += f" CloudFormation template contains {cfn_crit} CRITICAL violations."
+
         # 4. Format Output
         if args.format == "json":
             output_str = json.dumps(report.model_dump(), indent=2, default=str)
         elif args.format == "markdown":
             output_str = self.format_markdown_output(report)
+        elif args.format == "github-pr":
+            patch_preview = report.remediation_patches[0].terraform_patch if report.remediation_patches else None
+            output_str = GitHubPRBot.format_pr_comment(report, patch_text=patch_preview)
+        elif args.format == "slack":
+            output_str = json.dumps(WebhookNotifier.build_slack_payload(report), indent=2)
+        elif args.format == "discord":
+            output_str = json.dumps(WebhookNotifier.build_discord_payload(report), indent=2)
         else:
             output_str = self.format_console_output(report)
 

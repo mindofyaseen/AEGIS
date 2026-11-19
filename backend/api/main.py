@@ -290,6 +290,72 @@ def generate_remediation_pr(patch: RemediationPatch = Body(...)):
     )
 
 
+# ==========================================
+# PHASE 2.5 ENTERPRISE EXPANSION ENDPOINTS
+# ==========================================
+from services.change_analysis.cloudformation_parser import CloudFormationAnalyzer
+from services.security_engine.compliance_mapper import ComplianceEngine
+from services.integration.github_bot import GitHubPRBot
+from services.integration.webhook_notifier import WebhookNotifier
+from integrations.bedrock.guardrails_generator import BedrockGuardrailsGenerator
+
+cfn_analyzer = CloudFormationAnalyzer()
+compliance_engine = ComplianceEngine()
+
+
+@app.post("/api/v1/analyze/cloudformation")
+def analyze_cloudformation(body: Dict[str, str] = Body(...)):
+    """Analyze CloudFormation or CDK synthesized JSON/YAML template."""
+    content = body.get("template_content", "")
+    findings = cfn_analyzer.analyze(content)
+    return {
+        "findings_count": len(findings),
+        "findings": [f.model_dump() for f in findings]
+    }
+
+
+@app.get("/api/v1/compliance/report")
+def get_compliance_report(scenario_id: str = "block-ssh"):
+    """Generate CIS AWS Benchmark v3.0, SOC 2, and PCI-DSS compliance report."""
+    topo = load_fixture_json("aws_topologies", "ecommerce_vpc.json" if scenario_id == "block-ssh" else "compliant_vpc.json")
+    report = investigator.run_investigation(topology_data=topo)
+    comp_report = compliance_engine.evaluate(report.findings)
+    return comp_report.model_dump()
+
+
+@app.post("/api/v1/integrations/github/comment")
+def generate_github_pr_comment(scenario_id: str = "block-ssh"):
+    """Synthesize executive GitHub Pull Request comment markdown."""
+    topo = load_fixture_json("aws_topologies", "ecommerce_vpc.json" if scenario_id == "block-ssh" else "compliant_vpc.json")
+    report = investigator.run_investigation(topology_data=topo)
+    patch_sample = report.remediation_patches[0].terraform_patch if report.remediation_patches else None
+    comment_md = GitHubPRBot.format_pr_comment(report, patch_text=patch_sample)
+    return {
+        "comment_markdown": comment_md,
+        "verdict": report.verdict.value
+    }
+
+
+@app.post("/api/v1/integrations/webhook/payload")
+def generate_webhook_payload(service: str = "slack", scenario_id: str = "block-ssh"):
+    """Generate Slack BlockKit or Discord Embed JSON webhook payload."""
+    topo = load_fixture_json("aws_topologies", "ecommerce_vpc.json" if scenario_id == "block-ssh" else "compliant_vpc.json")
+    report = investigator.run_investigation(topology_data=topo)
+    if service.lower() == "discord":
+        return WebhookNotifier.build_discord_payload(report)
+    return WebhookNotifier.build_slack_payload(report)
+
+
+@app.get("/api/v1/bedrock/guardrails-spec")
+def get_bedrock_guardrails_spec():
+    """Export the 15 AEGIS rules into AWS Bedrock Guardrails Boto3 & CloudFormation schema."""
+    return {
+        "boto3_create_guardrail_payload": BedrockGuardrailsGenerator.generate_boto3_spec(),
+        "cloudformation_template": BedrockGuardrailsGenerator.generate_cloudformation_template()
+    }
+
+
+
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "apps" / "web" / "dist"
 if DIST_DIR.exists():
     from fastapi.staticfiles import StaticFiles

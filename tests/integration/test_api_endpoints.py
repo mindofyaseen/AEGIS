@@ -3,6 +3,7 @@ Integration tests for AEGIS FastAPI endpoints.
 Verifies all public routes, scenarios, graph payloads, and CloudTrail forensics.
 """
 
+import json
 from fastapi.testclient import TestClient
 from backend.api.main import app
 
@@ -122,3 +123,64 @@ def test_phase2_generate_pr_endpoint():
     assert "aegis/security-patch-sg-bastion-public" in data["remediation_branch"]
     assert "remediation-sg-bastion-public.patch" in data["patch_filename"]
     assert "## 🛡️ AEGIS Automated Security Remediation Pull Request" in data["pr_body_markdown"]
+
+
+def test_cfn_analyze_endpoint():
+    template = {
+        "Resources": {
+            "OpenSG": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "SecurityGroupIngress": [
+                        {"FromPort": 22, "ToPort": 22, "CidrIp": "0.0.0.0/0"}
+                    ]
+                }
+            }
+        }
+    }
+    response = client.post("/api/v1/analyze/cloudformation", json={"template_content": json.dumps(template)})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["findings_count"] == 1
+    assert data["findings"][0]["rule_id"] == "SEC-CFN-01"
+
+
+def test_compliance_report_endpoint():
+    response = client.get("/api/v1/compliance/report?scenario_id=block-ssh")
+    assert response.status_code == 200
+    data = response.json()
+    assert "overall_compliance_pct" in data
+    assert "cis" in data["frameworks"]
+    assert "soc2" in data["frameworks"]
+    assert data["frameworks"]["cis"]["compliance_score_pct"] <= 100.0
+
+
+def test_github_pr_comment_endpoint():
+    response = client.post("/api/v1/integrations/github/comment?scenario_id=block-ssh")
+    assert response.status_code == 200
+    data = response.json()
+    assert "comment_markdown" in data
+    assert "## 🛡️ AEGIS Security Gatekeeper" in data["comment_markdown"]
+    assert data["verdict"] == "BLOCK"
+
+
+def test_webhook_payload_endpoint():
+    # Slack
+    resp_slack = client.post("/api/v1/integrations/webhook/payload?service=slack&scenario_id=block-ssh")
+    assert resp_slack.status_code == 200
+    assert "blocks" in resp_slack.json()
+
+    # Discord
+    resp_discord = client.post("/api/v1/integrations/webhook/payload?service=discord&scenario_id=block-ssh")
+    assert resp_discord.status_code == 200
+    assert "embeds" in resp_discord.json()
+
+
+def test_bedrock_guardrails_spec_endpoint():
+    response = client.get("/api/v1/bedrock/guardrails-spec")
+    assert response.status_code == 200
+    data = response.json()
+    assert "boto3_create_guardrail_payload" in data
+    assert "cloudformation_template" in data
+    assert data["boto3_create_guardrail_payload"]["name"] == "aegis-cloud-security-guardrail"
+

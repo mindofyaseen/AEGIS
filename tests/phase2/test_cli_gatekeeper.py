@@ -59,3 +59,38 @@ def test_cli_gatekeeper_writes_output_file(tmp_path):
     assert out_file.exists()
     content = out_file.read_text(encoding="utf-8")
     assert "AEGIS Security Gatekeeper Report" in content
+
+
+def test_cli_gatekeeper_github_pr_format(capsys):
+    cli = AegisCLI()
+    exit_code = cli.run(["--format", "github-pr"])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "## 🛡️ AEGIS Security Gatekeeper — Automated PR Review" in captured.out
+    assert "CIS AWS Foundations Benchmark" in captured.out
+
+
+def test_cli_gatekeeper_slack_format(capsys):
+    cli = AegisCLI()
+    exit_code = cli.run(["--format", "slack"])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert '"blocks":' in captured.out
+    assert "AEGIS Security Verdict" in captured.out
+
+
+def test_cli_gatekeeper_cfn_template_detection(tmp_path, capsys):
+    cfn_file = tmp_path / "vulnerable_cfn.json"
+    cfn_file.write_text(
+        '{"Resources": {"InsecureSG": {"Type": "AWS::EC2::SecurityGroup", "Properties": {"SecurityGroupIngress": [{"FromPort": 22, "ToPort": 22, "CidrIp": "0.0.0.0/0"}]}}}}',
+        encoding="utf-8"
+    )
+    cli = AegisCLI()
+    exit_code = cli.run([
+        "--cfn-template", str(cfn_file),
+        "--fail-on-block"
+    ])
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert "CloudFormation template contains" in captured.out
+
