@@ -1,4 +1,11 @@
-import { InvestigationReport, TimelineEvent, AdversarialTest, Scenario } from './types';
+import {
+  InvestigationReport,
+  TimelineEvent,
+  AdversarialTest,
+  Scenario,
+  ComplianceReport,
+  RemediationPullRequest
+} from './types';
 
 const API_BASE = '/api';
 
@@ -110,7 +117,7 @@ export async function triggerThreatCorrelation(): Promise<any> {
   return await res.json();
 }
 
-export async function generateRemediationPullRequest(patch: any): Promise<any> {
+export async function generateRemediationPullRequest(patch: any): Promise<RemediationPullRequest> {
   const res = await fetch(`${API_BASE}/phase2/generate-pr`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -120,3 +127,40 @@ export async function generateRemediationPullRequest(patch: any): Promise<any> {
   return await res.json();
 }
 
+export async function fetchComplianceReport(scenarioId: string = 'block-ssh'): Promise<ComplianceReport> {
+  const res = await fetch(`${API_BASE}/v1/compliance/report?scenario_id=${scenarioId}`);
+  if (!res.ok) throw new Error('Failed to fetch compliance report');
+  return await res.json();
+}
+
+export async function analyzeCloudFormationTemplate(templateContent: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/v1/analyze/cloudformation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ template_content: templateContent }),
+  });
+  if (!res.ok) throw new Error('Failed to analyze CloudFormation template');
+  return await res.json();
+}
+
+export async function fetchBedrockGuardrailsSpec(): Promise<any> {
+  const res = await fetch(`${API_BASE}/v1/bedrock/guardrails-spec`);
+  if (!res.ok) throw new Error('Failed to fetch Bedrock guardrails specification');
+  return await res.json();
+}
+
+export async function fetchGitHubPRComment(scenarioId: string = 'block-ssh'): Promise<{ comment_markdown: string; verdict: string }> {
+  const res = await fetch(`${API_BASE}/v1/integrations/github/comment?scenario_id=${scenarioId}`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to synthesize GitHub PR comment');
+  return await res.json();
+}
+
+export async function fetchWebhookPayload(service: 'slack' | 'discord', scenarioId: string = 'block-ssh'): Promise<any> {
+  const res = await fetch(`${API_BASE}/v1/integrations/webhook/payload?service=${service}&scenario_id=${scenarioId}`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to fetch ${service} webhook payload`);
+  return await res.json();
+}

@@ -1,29 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
-import { VerdictHero } from './components/VerdictHero';
-import { TopologyMap } from './components/TopologyMap';
-import { FindingsList } from './components/FindingsList';
-import { RemediationDrawer } from './components/RemediationDrawer';
-import { CloudTrailTimeline } from './components/CloudTrailTimeline';
-import { AdversarialMatrix } from './components/AdversarialMatrix';
-import { RulesModal } from './components/RulesModal';
+import { ApplicationShell } from './components/ApplicationShell';
+import { PageOverview } from './pages/PageOverview';
+import { PageExplorer } from './pages/PageExplorer';
+import { PageFindings } from './pages/PageFindings';
+import { PageAttackPaths } from './pages/PageAttackPaths';
+import { PageChangeIntel } from './pages/PageChangeIntel';
+import { PageInvestigation } from './pages/PageInvestigation';
+import { PageRemediation } from './pages/PageRemediation';
+import { PageAgentConsole } from './pages/PageAgentConsole';
+import { PageGovernance } from './pages/PageGovernance';
+import { PageAdversarialLab } from './pages/PageAdversarialLab';
+import { PageComplianceAudit } from './pages/PageComplianceAudit';
 import {
+  AppPage,
   InvestigationReport,
   TimelineEvent,
   AdversarialTest,
   Scenario,
-  SecurityFinding,
+  SecurityFinding
 } from './types';
 import {
   fetchScenarios,
   runScenarioInvestigation,
   fetchCloudTrailTimeline,
   fetchAdversarialTests,
-  fetchRulesDocument,
+  fetchRulesDocument
 } from './api';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'investigation' | 'forensics' | 'adversarial' | 'rules'>('investigation');
+  const [activePage, setActivePage] = useState<AppPage>('overview');
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<string>('block-ssh');
   const [report, setReport] = useState<InvestigationReport | null>(null);
@@ -32,12 +37,10 @@ export const App: React.FC = () => {
   const [totalAdvTests, setTotalAdvTests] = useState(14);
   const [passedAdvTests, setPassedAdvTests] = useState(14);
   const [rulesDoc, setRulesDoc] = useState('');
-  const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activePatchIndex, setActivePatchIndex] = useState(0);
-  const [selectedFindingId, setSelectedFindingId] = useState<string | undefined>();
+  const [selectedFinding, setSelectedFinding] = useState<SecurityFinding | null>(null);
 
-  // Initial Load
+  // Initial Data Bootstrap
   useEffect(() => {
     async function init() {
       setLoading(true);
@@ -61,11 +64,11 @@ export const App: React.FC = () => {
               { id: 'ADV-11', name: 'Cross-Account Target Boundary Breach', status: 'PASSED', defense: 'Account boundary validator' },
               { id: 'ADV-12', name: 'Agent Governance Rule Modification Denial', status: 'PASSED', defense: 'Immutable rules file' },
               { id: 'ADV-13', name: 'Multi-Hop Attack Path Lateral Discovery', status: 'PASSED', defense: 'Graph BFS attack path tracer' },
-              { id: 'ADV-14', name: 'LLM Hallucination "SAFE" Verdict Denial', status: 'PASSED', defense: 'Deterministic Policy Engine arbitrator' },
-            ],
+              { id: 'ADV-14', name: 'LLM Hallucination "SAFE" Verdict Denial', status: 'PASSED', defense: 'Deterministic Policy Engine arbitrator' }
+            ]
           })),
           fetchRulesDocument(),
-          fetchCloudTrailTimeline().catch(() => []),
+          fetchCloudTrailTimeline().catch(() => [])
         ]);
 
         setScenarios(sc);
@@ -75,7 +78,7 @@ export const App: React.FC = () => {
         setRulesDoc(doc);
         setTimeline(ct);
 
-        // Load default investigation scenario
+        // Load initial default investigation scenario
         await loadScenario('block-ssh');
       } catch (err) {
         console.error('Initialization error:', err);
@@ -93,8 +96,11 @@ export const App: React.FC = () => {
     try {
       const rep = await runScenarioInvestigation(scenarioId);
       setReport(rep);
-      setActivePatchIndex(0);
-      setSelectedFindingId(undefined);
+      if (rep.findings && rep.findings.length > 0) {
+        setSelectedFinding(rep.findings[0]);
+      } else {
+        setSelectedFinding(null);
+      }
     } catch (err) {
       console.error('Failed to load scenario:', err);
     } finally {
@@ -102,101 +108,90 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleSelectFinding = (finding: SecurityFinding) => {
-    setSelectedFindingId(finding.finding_id);
-    if (report && report.remediation_patches.length > 0) {
-      const patchIdx = report.remediation_patches.findIndex(
-        (p) => p.target_resource_id === finding.affected_resource_id
-      );
-      if (patchIdx !== -1) {
-        setActivePatchIndex(patchIdx);
-      }
-    }
-  };
-
   const isHardenedScenario = selectedScenario === 'ready-review';
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-black">
-      {/* Top Navigation */}
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenRules={() => setIsRulesOpen(true)}
-      />
-
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {/* Executive Verdict Hero Banner */}
-        <VerdictHero
+    <ApplicationShell
+      activePage={activePage}
+      setActivePage={setActivePage}
+      scenarios={scenarios}
+      selectedScenario={selectedScenario}
+      onSelectScenario={loadScenario}
+      loading={loading}
+      onRefresh={() => loadScenario(selectedScenario)}
+    >
+      {activePage === 'overview' && (
+        <PageOverview
           report={report}
           loading={loading}
-          selectedScenario={selectedScenario}
-          onSelectScenario={loadScenario}
-          scenarios={scenarios}
+          onNavigate={(page) => setActivePage(page)}
+          onSelectFinding={(f) => setSelectedFinding(f)}
+          isHardened={isHardenedScenario}
         />
+      )}
 
-        {/* Tab 1: Security Investigation (Core) */}
-        {activeTab === 'investigation' && (
-          <div className="space-y-6">
-            {/* 1. Infrastructure Topology & Attack Path Map */}
-            <TopologyMap
-              attackPaths={report ? report.attack_paths : []}
-              isHardened={isHardenedScenario}
-            />
+      {activePage === 'explorer' && (
+        <PageExplorer
+          report={report}
+          isHardened={isHardenedScenario}
+          onSelectFinding={(f) => {
+            setSelectedFinding(f);
+            setActivePage('findings');
+          }}
+        />
+      )}
 
-            {/* 2. Side-by-side Findings List & Remediation Drawer */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FindingsList
-                findings={report ? report.findings : []}
-                onSelectFinding={handleSelectFinding}
-                selectedFindingId={selectedFindingId}
-              />
+      {activePage === 'findings' && (
+        <PageFindings
+          findings={report ? report.findings : []}
+          onSelectFinding={(f) => setSelectedFinding(f)}
+          onNavigateRemediation={() => setActivePage('remediation')}
+        />
+      )}
 
-              <RemediationDrawer
-                patches={report ? report.remediation_patches : []}
-                activePatchIndex={activePatchIndex}
-                setActivePatchIndex={setActivePatchIndex}
-              />
-            </div>
-          </div>
-        )}
+      {activePage === 'attack_paths' && (
+        <PageAttackPaths
+          attackPaths={report ? report.attack_paths : []}
+          onNavigateRemediation={() => setActivePage('remediation')}
+        />
+      )}
 
-        {/* Tab 2: Incident Forensics Timeline */}
-        {activeTab === 'forensics' && (
-          <CloudTrailTimeline events={timeline} loading={false} />
-        )}
+      {activePage === 'change_intel' && (
+        <PageChangeIntel
+          onNavigateRemediation={() => setActivePage('remediation')}
+        />
+      )}
 
-        {/* Tab 3: Adversarial Verification Suite */}
-        {activeTab === 'adversarial' && (
-          <AdversarialMatrix
-            tests={adversarialTests}
-            totalTests={totalAdvTests}
-            passedTests={passedAdvTests}
-          />
-        )}
-      </main>
+      {activePage === 'investigation' && (
+        <PageInvestigation events={timeline} />
+      )}
 
-      {/* Rules Modal */}
-      <RulesModal
-        isOpen={isRulesOpen}
-        onClose={() => setIsRulesOpen(false)}
-        rulesDocument={rulesDoc}
-      />
+      {activePage === 'remediation' && (
+        <PageRemediation patches={report ? report.remediation_patches : []} />
+      )}
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-[#0a0d14] px-6 py-4 mt-8">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 font-mono">
-          <div>
-            <span>AEGIS Cloud Security Platform — AWS Builder Center Hackathon 2026</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span>Model: Bedrock AgentCore</span>
-            <span>Zero Mutation Enforced</span>
-            <span>Spend Target &lt; $20 (Actual $0.00)</span>
-          </div>
-        </div>
-      </footer>
-    </div>
+      {activePage === 'agent_console' && (
+        <PageAgentConsole report={report} selectedScenario={selectedScenario} />
+      )}
+
+      {activePage === 'governance' && (
+        <PageGovernance />
+      )}
+
+      {activePage === 'adversarial_lab' && (
+        <PageAdversarialLab
+          tests={adversarialTests}
+          totalTests={totalAdvTests}
+          passedTests={passedAdvTests}
+        />
+      )}
+
+      {activePage === 'compliance_audit' && (
+        <PageComplianceAudit
+          report={report}
+          selectedScenario={selectedScenario}
+        />
+      )}
+    </ApplicationShell>
   );
 };

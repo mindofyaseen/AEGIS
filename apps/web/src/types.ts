@@ -2,6 +2,19 @@ export type Verdict = 'BLOCK' | 'INSUFFICIENT_CONTEXT' | 'READY_FOR_HUMAN_REVIEW
 
 export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFORMATIONAL';
 
+export type AppPage =
+  | 'overview'
+  | 'explorer'
+  | 'findings'
+  | 'attack_paths'
+  | 'change_intel'
+  | 'investigation'
+  | 'remediation'
+  | 'agent_console'
+  | 'governance'
+  | 'adversarial_lab'
+  | 'compliance_audit';
+
 export interface ResourceEvidence {
   source_collector: string;
   discovered_at: string;
@@ -122,3 +135,43 @@ export interface RemediationPullRequest {
   created_at: string;
 }
 
+export interface FrameworkScorecard {
+  framework_name: string;
+  version: string;
+  total_checks: number;
+  passed_checks: number;
+  failed_checks: number;
+  compliance_score_pct: number;
+  violations: Array<{
+    rule_id: string;
+    control_id: string;
+    control_title: string;
+    resource_id: string;
+    severity: string;
+  }>;
+}
+
+export interface ComplianceReport {
+  overall_compliance_pct: number;
+  frameworks: Record<string, FrameworkScorecard>;
+  total_findings_mapped: number;
+}
+
+export interface TopologyNode3D {
+  id: string;
+  label: string;
+  type: string;
+  status: 'compromised' | 'exposed' | 'hardened' | 'target' | 'normal';
+  details: string;
+  position: [number, number, number];
+  subnet?: string;
+  vpc?: string;
+}
+
+export interface TopologyEdge3D {
+  id: string;
+  source: string;
+  target: string;
+  relationship: string;
+  isAttackHop?: boolean;
+}
