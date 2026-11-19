@@ -10,7 +10,7 @@
 ---
 
 ## 1. What Is Working
-- **Full Test Suite:** **28 / 28 tests passing** (14/14 adversarial tests, 4/4 remediation unit tests, 10/10 FastAPI integration tests) in 2.76 seconds.
+- **Full Test Suite:** **48 / 48 tests passing** (14/14 adversarial tests, 24/24 core unit tests, 10/10 FastAPI integration tests) in 3.61 seconds with zero warnings.
 - **Bedrock AgentCore Harness:** Boto3 `bedrock-agentcore` and `bedrock-agentcore-control` driver with tool parameter validation, quarantine boundaries, and prompt injection defense.
 - **Knowledge Graph Engine:** NetworkX MultiDiGraph modeling directional cloud relationships (`CONTAINS`, `ROUTES_TO`, `ASSOCIATED_WITH`, `ASSUMES`, `GRANTS`).
 - **Context Completeness Gate:** Deterministic mathematical gate blocking verdicts on incomplete telemetry (100% fail-closed).
@@ -27,8 +27,13 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Adversarial Red-Team Suite** | `tests/adversarial/test_adversarial_suite.py` | 14 | 14 | 2.02s |
 | **FastAPI Integration & SPA** | `tests/integration/test_api_endpoints.py` | 10 | 10 | 0.50s |
+| **Attack Path Tracer Unit** | `tests/unit/test_attack_path_tracer.py` | 3 | 3 | 0.05s |
+| **Bedrock Harness Unit** | `tests/unit/test_bedrock_harness.py` | 5 | 5 | 0.15s |
+| **Context Completeness Unit** | `tests/unit/test_context_completeness.py` | 5 | 5 | 0.05s |
 | **Remediation Planner Unit** | `tests/unit/test_remediation_planner.py` | 4 | 4 | 0.05s |
-| **Total** | | **28** | **28** | **2.57s** |
+| **Terraform Change Analyzer Unit** | `tests/unit/test_terraform_analyzer.py` | 4 | 4 | 0.05s |
+| **CloudTrail Timeline Engine Unit** | `tests/unit/test_timeline_engine.py` | 3 | 3 | 0.05s |
+| **Total** | | **48** | **48** | **3.61s** |
 
 ---
 

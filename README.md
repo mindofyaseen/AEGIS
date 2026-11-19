@@ -5,7 +5,7 @@
 ![AEGIS Platform](https://img.shields.io/badge/AWS-Bedrock%20AgentCore-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Tests](https://img.shields.io/badge/Tests-28%2F28%20Pass-00ffaa?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-48%2F48%20Pass-00ffaa?style=for-the-badge)
 ![Zero-Mutation](https://img.shields.io/badge/Security-Zero%20Mutation-ff0055?style=for-the-badge)
 
 **Evidence-backed security investigations of AWS infrastructure governed by deterministic Context Completeness Gates and Amazon Bedrock Managed Agents.**
@@ -115,7 +115,7 @@ npm.cmd run build
 cd ../..
 ```
 
-### 3. Run Test Suite (28 Tests)
+### 3. Run Test Suite (48 Tests)
 ```powershell
 python -m pytest tests/ -v
 ```

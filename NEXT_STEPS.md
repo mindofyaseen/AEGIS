@@ -1,7 +1,7 @@
 # AEGIS — Next Steps & Final Submission Preparation
 
 ## 1. Local Testing & Verification (Completed)
-- [x] All 28 automated tests passing (`python -m pytest tests/ -v`).
+- [x] All 48 automated tests passing (`python -m pytest tests/ -v`).
 - [x] Frontend successfully built (`npm.cmd run build` $\to$ `apps/web/dist`).
 - [x] FastAPI static mount tested and serving SPA on `/`.
 
