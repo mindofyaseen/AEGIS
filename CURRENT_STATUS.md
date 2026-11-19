@@ -10,7 +10,9 @@
 ---
 
 ## 1. What Is Working
-- **Full Test Suite:** **62 / 62 tests passing** (14/14 adversarial tests, 24/24 core unit tests, 11/11 Phase 2 enterprise tests, 13/13 FastAPI integration tests) in 4.81 seconds with zero warnings.
+- **Full Test Suite:** **65 / 65 tests passing** (14/14 adversarial tests, 24/24 core unit tests, 11/11 Phase 2 enterprise tests, 13/13 FastAPI integration tests, 3/3 E2E benchmark tests) in 4.72 seconds with zero warnings.
+- **Unified E2E Pipeline & Performance Verification:** Full pipeline test combining Multi-Account discovery, Terraform AST drift detection, GuardDuty threat escalation, attack path BFS tracing, Rule 14 PR generation, and CLI gatekeeper.
+- **Graph Traversal Memoization & GZip API Compression:** In-memory caching on `AttackPathTracer` and `GZipMiddleware(minimum_size=1000)` in FastAPI reducing payload size and latency to sub-250ms.
 - **Phase 2 CI/CD Pull Request Gatekeeper:** Executable Python CLI (`cli/aegis_cli.py`) and GitHub Action workflow (`.github/workflows/aegis_gatekeeper.yml`) with deterministic blocking exit codes.
 - **Phase 2 AWS Organizations Multi-Account Harvester:** Cross-account STS `AssumeRole` discovery aggregating multi-account topologies while enforcing Rule 01 boundary isolation.
 - **Phase 2 Security Hub & GuardDuty Correlator:** Ingestion and correlation of active runtime threats with static attack paths (`SEC-THREAT-01`).
@@ -30,6 +32,7 @@
 | Test Category | File Path | Total Tests | Passed | Execution Time |
 | :--- | :--- | :--- | :--- | :--- |
 | **Adversarial Red-Team Suite** | `tests/adversarial/test_adversarial_suite.py` | 14 | 14 | 2.02s |
+| **Unified E2E Pipeline & Performance** | `tests/e2e/test_phase1_phase2_unified_pipeline.py` | 3 | 3 | 0.56s |
 | **FastAPI Integration & SPA** | `tests/integration/test_api_endpoints.py` | 13 | 13 | 0.65s |
 | **Phase 2 CI/CD Gatekeeper CLI** | `tests/phase2/test_cli_gatekeeper.py` | 5 | 5 | 0.45s |
 | **Phase 2 Multi-Account Harvester** | `tests/phase2/test_multi_account.py` | 3 | 3 | 0.05s |
@@ -41,7 +44,7 @@
 | **Remediation Planner Unit** | `tests/unit/test_remediation_planner.py` | 4 | 4 | 0.05s |
 | **Terraform Change Analyzer Unit** | `tests/unit/test_terraform_analyzer.py` | 4 | 4 | 0.05s |
 | **CloudTrail Timeline Engine Unit** | `tests/unit/test_timeline_engine.py` | 3 | 3 | 0.05s |
-| **Total** | | **62** | **62** | **4.81s** |
+| **Total** | | **65** | **65** | **4.72s** |
 
 ---
 

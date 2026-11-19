@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from typing import Dict, Any, Optional, List
 
 from backend.models import InvestigationReport, Verdict, CollectorRunReport, CollectorStatus
@@ -29,6 +30,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent.parent / "fixtures"
 investigator = AegisInvestigator()

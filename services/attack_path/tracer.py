@@ -17,11 +17,16 @@ from services.infrastructure_graph.graph_engine import InfrastructureGraphEngine
 class AttackPathTracer:
     def __init__(self, graph_engine: InfrastructureGraphEngine):
         self.graph_engine = graph_engine
+        self._cached_paths: Optional[List[AttackPath]] = None
 
-    def trace_attack_paths(self) -> List[AttackPath]:
+    def trace_attack_paths(self, force_refresh: bool = False) -> List[AttackPath]:
         """
         Identify verified attack paths from external exposure points to sensitive crown jewels.
+        Cached for optimal graph traversal performance.
         """
+        if self._cached_paths is not None and not force_refresh:
+            return self._cached_paths
+
         paths: List[AttackPath] = []
         ingress_nodes = self.graph_engine.get_public_ingress_nodes()
         sensitive_targets = self.graph_engine.get_sensitive_data_targets()
@@ -77,4 +82,5 @@ class AttackPathTracer:
                         )
                     )
 
+        self._cached_paths = paths
         return paths
