@@ -17,9 +17,13 @@ import {
 
 interface PageRemediationProps {
   patches: RemediationPatch[];
+  viewAudience?: 'business' | 'technical';
 }
 
-export const PageRemediation: React.FC<PageRemediationProps> = ({ patches }) => {
+export const PageRemediation: React.FC<PageRemediationProps> = ({
+  patches,
+  viewAudience = 'business'
+}) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [generatingPr, setGeneratingPr] = useState(false);
   const [generatedPr, setGeneratedPr] = useState<RemediationPullRequest | null>(null);
@@ -43,13 +47,24 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({ patches }) => 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="border-b border-aegis-border pb-4">
-        <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
-          REMEDIATION PLANNING & AUTOMATED GIT PR WORKSPACE
-        </h2>
-        <p className="text-xs text-aegis-textSecondary">
-          Rule 14 deterministic minimal diffs, tested rollback plans, human verification checklists, and GitHub PR synthesis.
-        </p>
+      <div className="border-b border-aegis-border pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
+            {viewAudience === 'business' ? '1-CLICK SAFETY FIXES & PULL REQUESTS' : 'REMEDIATION PLANNING & AUTOMATED GIT PR WORKSPACE'}
+          </h2>
+          <p className="text-xs text-aegis-textSecondary">
+            {viewAudience === 'business'
+              ? 'Safe, tested 1-click code fixes that lock down your cloud with zero downtime to your customers.'
+              : 'Rule 14 deterministic minimal diffs, tested rollback plans, human verification checklists, and GitHub PR synthesis.'}
+          </p>
+        </div>
+
+        {viewAudience === 'business' && (
+          <div className="px-3 py-1.5 rounded-lg bg-emerald-950/30 border border-emerald-600/40 text-xs text-emerald-300 font-sans flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-aegis-success" />
+            <span>Zero Customer Downtime Guarantee</span>
+          </div>
+        )}
       </div>
 
       {patches.length === 0 ? (

@@ -27,7 +27,8 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
   onClose,
   onConnected
 }) => {
-  const [connectMethod, setConnectMethod] = useState<'role' | 'iac'>('role');
+  const [connectMethod, setConnectMethod] = useState<'preset' | 'role' | 'iac'>('preset');
+  const [selectedPreset, setSelectedPreset] = useState<'fintech-bank' | 'healthcare-hipaa' | 'retail-ecommerce'>('fintech-bank');
   const [accountId, setAccountId] = useState('237657481511');
   const [region, setRegion] = useState('us-east-1');
   const [roleArn, setRoleArn] = useState('arn:aws:iam::237657481511:role/AegisSecurityAuditRole');
@@ -42,12 +43,15 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
     setErrorMsg(null);
     try {
       const payload: any = {
-        account_id: accountId.trim() || '123456789012',
+        account_id: accountId.trim() || '237657481511',
         region: region.trim() || 'us-east-1',
         role_arn: roleArn.trim()
       };
 
-      if (connectMethod === 'iac' && iacContent.trim()) {
+      if (connectMethod === 'preset') {
+        payload.preset_name = selectedPreset;
+        payload.account_id = selectedPreset === 'fintech-bank' ? '884920194812' : selectedPreset === 'healthcare-hipaa' ? '551928401928' : '237657481511';
+      } else if (connectMethod === 'iac' && iacContent.trim()) {
         payload.cfn_template = iacContent.trim();
       }
 
@@ -72,9 +76,9 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
               <Cloud className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-aegis-textPrimary">Connect Your AWS Infrastructure</h3>
+              <h3 className="text-sm font-bold text-aegis-textPrimary">Connect Cloud Infrastructure</h3>
               <p className="text-[11px] text-aegis-textSecondary">
-                Connect live cloud metadata via read-only role or paste Infrastructure-as-Code for an instant AI audit.
+                Evaluate your own AWS cloud, test a pre-configured business architecture, or upload infrastructure code.
               </p>
             </div>
           </div>
@@ -89,45 +93,120 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
         {/* Modal Body */}
         <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
           {/* Method Selector Tabs */}
-          <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+          <div className="grid grid-cols-3 gap-2 font-mono text-xs">
+            <button
+              onClick={() => setConnectMethod('preset')}
+              className={`p-3 rounded-lg border text-left transition-all flex flex-col gap-1.5 ${
+                connectMethod === 'preset'
+                  ? 'bg-aegis-panel border-aegis-accentCyan shadow-sm'
+                  : 'bg-aegis-bgSecondary border-aegis-border text-aegis-textMuted hover:border-aegis-borderLight'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Play className={`w-3.5 h-3.5 shrink-0 ${connectMethod === 'preset' ? 'text-aegis-accentCyan' : ''}`} />
+                <span className={`font-bold ${connectMethod === 'preset' ? 'text-aegis-textPrimary' : ''}`}>
+                  1-Click Presets
+                </span>
+              </div>
+              <span className="text-[10px] text-aegis-textMuted font-sans">
+                Instant test without setting up AWS.
+              </span>
+            </button>
+
             <button
               onClick={() => setConnectMethod('role')}
-              className={`p-3 rounded-lg border text-left transition-all flex items-start gap-2.5 ${
+              className={`p-3 rounded-lg border text-left transition-all flex flex-col gap-1.5 ${
                 connectMethod === 'role'
                   ? 'bg-aegis-panel border-aegis-accentCyan shadow-sm'
                   : 'bg-aegis-bgSecondary border-aegis-border text-aegis-textMuted hover:border-aegis-borderLight'
               }`}
             >
-              <Lock className={`w-4 h-4 shrink-0 mt-0.5 ${connectMethod === 'role' ? 'text-aegis-accentCyan' : ''}`} />
-              <div>
-                <div className={`font-bold ${connectMethod === 'role' ? 'text-aegis-textPrimary' : ''}`}>
-                  Read-Only AWS IAM Role
-                </div>
-                <div className="text-[10px] text-aegis-textMuted mt-0.5 font-sans">
-                  Recommended for production accounts. 100% read-only metadata.
-                </div>
+              <div className="flex items-center gap-1.5">
+                <Lock className={`w-3.5 h-3.5 shrink-0 ${connectMethod === 'role' ? 'text-aegis-accentCyan' : ''}`} />
+                <span className={`font-bold ${connectMethod === 'role' ? 'text-aegis-textPrimary' : ''}`}>
+                  Live AWS Account
+                </span>
               </div>
+              <span className="text-[10px] text-aegis-textMuted font-sans">
+                Read-only IAM Role. 100% safe.
+              </span>
             </button>
 
             <button
               onClick={() => setConnectMethod('iac')}
-              className={`p-3 rounded-lg border text-left transition-all flex items-start gap-2.5 ${
+              className={`p-3 rounded-lg border text-left transition-all flex flex-col gap-1.5 ${
                 connectMethod === 'iac'
                   ? 'bg-aegis-panel border-aegis-accentBlue shadow-sm'
                   : 'bg-aegis-bgSecondary border-aegis-border text-aegis-textMuted hover:border-aegis-borderLight'
               }`}
             >
-              <FileCode className={`w-4 h-4 shrink-0 mt-0.5 ${connectMethod === 'iac' ? 'text-aegis-accentBlue' : ''}`} />
-              <div>
-                <div className={`font-bold ${connectMethod === 'iac' ? 'text-aegis-textPrimary' : ''}`}>
-                  Upload IaC Template
-                </div>
-                <div className="text-[10px] text-aegis-textMuted mt-0.5 font-sans">
-                  Paste CloudFormation or Terraform plan without giving cloud access.
-                </div>
+              <div className="flex items-center gap-1.5">
+                <FileCode className={`w-3.5 h-3.5 shrink-0 ${connectMethod === 'iac' ? 'text-aegis-accentBlue' : ''}`} />
+                <span className={`font-bold ${connectMethod === 'iac' ? 'text-aegis-textPrimary' : ''}`}>
+                  Upload IaC
+                </span>
               </div>
+              <span className="text-[10px] text-aegis-textMuted font-sans">
+                Paste CloudFormation/Terraform.
+              </span>
             </button>
           </div>
+
+          {/* Form Fields for 1-Click Presets */}
+          {connectMethod === 'preset' && (
+            <div className="space-y-3">
+              <label className="text-[11px] font-mono text-aegis-textMuted uppercase block">
+                Select an Industry Architecture Blueprint
+              </label>
+
+              <div className="space-y-2">
+                <div
+                  onClick={() => setSelectedPreset('fintech-bank')}
+                  className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
+                    selectedPreset === 'fintech-bank'
+                      ? 'bg-aegis-panel border-aegis-accentCyan'
+                      : 'bg-aegis-bgSecondary border-aegis-border hover:border-aegis-borderLight'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-aegis-textPrimary">Fintech Banking & Payment Cloud</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-aegis-critical/20 text-aegis-critical font-mono font-bold">
+                      $2.4M Risk Exposure
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-aegis-textSecondary mt-1 leading-relaxed">
+                    Multi-tier banking application with public API gateway, Aurora transaction ledger, and open admin port.
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => setSelectedPreset('healthcare-hipaa')}
+                  className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
+                    selectedPreset === 'healthcare-hipaa'
+                      ? 'bg-aegis-panel border-aegis-accentCyan'
+                      : 'bg-aegis-bgSecondary border-aegis-border hover:border-aegis-borderLight'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-aegis-textPrimary">Healthcare & EHR Patient Cloud</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-aegis-critical/20 text-aegis-critical font-mono font-bold">
+                      $1.9M HIPAA Penalty
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-aegis-textSecondary mt-1 leading-relaxed">
+                    Hospital medical records system with unencrypted electronic Protected Health Information (ePHI) in S3.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-blue-950/20 border border-blue-600/30 text-xs text-blue-300 font-sans flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-aegis-accentCyan mt-0.5" />
+                <span>
+                  <strong>Designed for Non-Technical Users:</strong> Presets simulate real enterprise environments so you can see AEGIS evaluate risks, calculate financial penalties, and generate 1-click fixes without needing any AWS credentials.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Form Fields */}
           {connectMethod === 'role' ? (

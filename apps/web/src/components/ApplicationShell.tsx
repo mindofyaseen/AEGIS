@@ -53,31 +53,33 @@ export const ApplicationShell: React.FC<ApplicationShellProps> = ({
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  const isBusiness = viewAudience === 'business';
+
   const navSections = [
     {
-      title: 'OPERATIONS',
+      title: isBusiness ? 'EXECUTIVE INSIGHTS' : 'OPERATIONS',
       items: [
-        { id: 'overview' as AppPage, label: 'Executive Overview', icon: Activity, badge: undefined },
-        { id: 'explorer' as AppPage, label: 'Infrastructure Explorer', icon: Layers, badge: '3D' },
-        { id: 'findings' as AppPage, label: 'Security Findings', icon: AlertTriangle, badge: undefined },
-        { id: 'attack_paths' as AppPage, label: 'Attack Path Intelligence', icon: GitBranch, badge: 'Crucial' },
+        { id: 'overview' as AppPage, label: isBusiness ? 'Business Risk & Health' : 'Executive Overview', icon: Activity, badge: isBusiness ? 'Critical' : undefined },
+        { id: 'explorer' as AppPage, label: isBusiness ? 'Visual Cloud Map' : 'Infrastructure Explorer', icon: Layers, badge: '3D' },
+        { id: 'findings' as AppPage, label: isBusiness ? 'Vulnerabilities & Risk' : 'Security Findings', icon: AlertTriangle, badge: undefined },
+        { id: 'attack_paths' as AppPage, label: isBusiness ? 'Hacker Simulation' : 'Attack Path Intelligence', icon: GitBranch, badge: 'Crucial' },
       ]
     },
     {
-      title: 'DEVSECOPS & FORENSICS',
+      title: isBusiness ? 'SAFETY & AUTOMATION' : 'DEVSECOPS & FORENSICS',
       items: [
-        { id: 'change_intel' as AppPage, label: 'Change Intelligence', icon: FileCode, badge: 'IaC' },
-        { id: 'investigation' as AppPage, label: 'Incident Investigation', icon: Clock, badge: 'CloudTrail' },
-        { id: 'remediation' as AppPage, label: 'Remediation Workspace', icon: Wrench, badge: 'Git PR' },
+        { id: 'change_intel' as AppPage, label: isBusiness ? 'Pre-Launch Safety Check' : 'Change Intelligence', icon: FileCode, badge: 'IaC' },
+        { id: 'investigation' as AppPage, label: isBusiness ? 'Audit Log Forensics' : 'Incident Investigation', icon: Clock, badge: 'CloudTrail' },
+        { id: 'remediation' as AppPage, label: isBusiness ? '1-Click Safety Fixes' : 'Remediation Workspace', icon: Wrench, badge: 'Git PR' },
       ]
     },
     {
-      title: 'AI AGENT & GOVERNANCE',
+      title: isBusiness ? 'AI SAFETY & COMPLIANCE' : 'AI AGENT & GOVERNANCE',
       items: [
-        { id: 'agent_console' as AppPage, label: 'Agent Command Center', icon: Bot, badge: 'Bedrock' },
-        { id: 'governance' as AppPage, label: 'Governance & Rules', icon: Scale, badge: '15 Rules' },
-        { id: 'adversarial_lab' as AppPage, label: 'Adversarial Testing Lab', icon: Crosshair, badge: '14/14' },
-        { id: 'compliance_audit' as AppPage, label: 'Compliance & Audit', icon: FileText, badge: 'CIS/SOC2' },
+        { id: 'agent_console' as AppPage, label: isBusiness ? 'AI Guardrails & Bedrock' : 'Agent Command Center', icon: Bot, badge: 'Bedrock' },
+        { id: 'governance' as AppPage, label: isBusiness ? 'Safety Policies' : 'Governance & Rules', icon: Scale, badge: '15 Rules' },
+        { id: 'adversarial_lab' as AppPage, label: isBusiness ? 'Hacker Stress Tests' : 'Adversarial Testing Lab', icon: Crosshair, badge: '14/14' },
+        { id: 'compliance_audit' as AppPage, label: isBusiness ? 'Regulatory Scores' : 'Compliance & Audit', icon: FileText, badge: 'CIS/SOC2' },
       ]
     }
   ];

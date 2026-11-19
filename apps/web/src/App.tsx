@@ -155,6 +155,7 @@ export const App: React.FC = () => {
           findings={report ? report.findings : []}
           onSelectFinding={(f) => setSelectedFinding(f)}
           onNavigateRemediation={() => setActivePage('remediation')}
+          viewAudience={viewAudience}
         />
       )}
 
@@ -162,6 +163,7 @@ export const App: React.FC = () => {
         <PageAttackPaths
           attackPaths={report ? report.attack_paths : []}
           onNavigateRemediation={() => setActivePage('remediation')}
+          viewAudience={viewAudience}
         />
       )}
 
@@ -176,7 +178,10 @@ export const App: React.FC = () => {
       )}
 
       {activePage === 'remediation' && (
-        <PageRemediation patches={report ? report.remediation_patches : []} />
+        <PageRemediation
+          patches={report ? report.remediation_patches : []}
+          viewAudience={viewAudience}
+        />
       )}
 
       {activePage === 'agent_console' && (

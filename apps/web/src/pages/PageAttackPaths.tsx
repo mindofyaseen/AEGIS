@@ -18,11 +18,13 @@ import {
 interface PageAttackPathsProps {
   attackPaths: AttackPath[];
   onNavigateRemediation?: () => void;
+  viewAudience?: 'business' | 'technical';
 }
 
 export const PageAttackPaths: React.FC<PageAttackPathsProps> = ({
   attackPaths,
-  onNavigateRemediation
+  onNavigateRemediation,
+  viewAudience = 'business'
 }) => {
   const [selectedPathIndex, setSelectedPathIndex] = useState(0);
 
@@ -31,13 +33,24 @@ export const PageAttackPaths: React.FC<PageAttackPathsProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="border-b border-aegis-border pb-4">
-        <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
-          ATTACK PATH INTELLIGENCE & BLAST RADIUS
-        </h2>
-        <p className="text-xs text-aegis-textSecondary">
-          Multi-hop lateral movement analysis from perimeter ingress to crown-jewel customer data stores.
-        </p>
+      <div className="border-b border-aegis-border pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
+            {viewAudience === 'business' ? 'HACKER BREAK-IN SIMULATION & BUSINESS IMPACT' : 'ATTACK PATH INTELLIGENCE & BLAST RADIUS'}
+          </h2>
+          <p className="text-xs text-aegis-textSecondary">
+            {viewAudience === 'business'
+              ? 'Real-world visual simulation demonstrating how an attacker can pivot from the internet to your confidential customer database.'
+              : 'Multi-hop lateral movement analysis from perimeter ingress to crown-jewel customer data stores.'}
+          </p>
+        </div>
+
+        {viewAudience === 'business' && (
+          <div className="px-3 py-1.5 rounded-lg bg-red-950/30 border border-aegis-critical/40 text-xs text-red-300 font-sans flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-aegis-critical animate-ping" />
+            <span>Estimated Breach Exposure: <strong>$1,420,000+</strong></span>
+          </div>
+        )}
       </div>
 
       {attackPaths.length === 0 ? (

@@ -24,7 +24,7 @@ Write-Host "Frontend compiled successfully into apps/web/dist" -ForegroundColor 
 # 3. Deploy CloudFormation Stack
 Write-Host "[3/5] Deploying CloudFormation Stack (aegis-production-stack)..." -ForegroundColor Yellow
 aws cloudformation deploy `
-  --template-file "deploy/aws/aegis_production_stack.yml`
+  --template-file "deploy/aws/aegis_production_stack.yml" `
   --stack-name "aegis-production-stack" `
   --capabilities CAPABILITY_NAMED_IAM `
   --parameter-overrides EnvironmentName=prod
