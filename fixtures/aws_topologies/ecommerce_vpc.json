@@ -1,0 +1,230 @@
+{
+  "topology_id": "topo-ecommerce-prod-01",
+  "name": "Production E-Commerce Multi-Tier VPC",
+  "account_id": "237657481511",
+  "region": "us-east-1",
+  "collected_at": "2026-11-19T10:00:00Z",
+  "resources": [
+    {
+      "resource_id": "vpc-0a1b2c3d4e",
+      "resource_type": "AWS::EC2::VPC",
+      "name": "production-ecommerce-vpc",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:vpc/vpc-0a1b2c3d4e",
+      "configuration": {
+        "cidr_block": "10.0.0.0/16",
+        "state": "available",
+        "is_default": false
+      },
+      "tags": { "Environment": "production", "ManagedBy": "terraform" },
+      "evidence": { "source_collector": "vpc_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "igw-01234567",
+      "resource_type": "AWS::EC2::InternetGateway",
+      "name": "production-igw",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:internet-gateway/igw-01234567",
+      "configuration": { "attachments": [{ "vpc_id": "vpc-0a1b2c3d4e", "state": "available" }] },
+      "tags": { "Environment": "production" },
+      "evidence": { "source_collector": "igw_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "subnet-pub-1",
+      "resource_type": "AWS::EC2::Subnet",
+      "name": "public-ingress-subnet-1a",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:subnet/subnet-pub-1",
+      "configuration": {
+        "vpc_id": "vpc-0a1b2c3d4e",
+        "cidr_block": "10.0.1.0/24",
+        "availability_zone": "us-east-1a",
+        "map_public_ip_on_launch": true
+      },
+      "tags": { "Type": "Public", "Tier": "Ingress" },
+      "evidence": { "source_collector": "subnet_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "subnet-priv-1",
+      "resource_type": "AWS::EC2::Subnet",
+      "name": "private-app-subnet-1a",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:subnet/subnet-priv-1",
+      "configuration": {
+        "vpc_id": "vpc-0a1b2c3d4e",
+        "cidr_block": "10.0.10.0/24",
+        "availability_zone": "us-east-1a",
+        "map_public_ip_on_launch": false
+      },
+      "tags": { "Type": "Private", "Tier": "Application" },
+      "evidence": { "source_collector": "subnet_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "rtb-pub",
+      "resource_type": "AWS::EC2::RouteTable",
+      "name": "public-route-table",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:route-table/rtb-pub",
+      "configuration": {
+        "vpc_id": "vpc-0a1b2c3d4e",
+        "routes": [
+          { "destination_cidr_block": "10.0.0.0/16", "gateway_id": "local", "state": "active" },
+          { "destination_cidr_block": "0.0.0.0/0", "gateway_id": "igw-01234567", "state": "active" }
+        ]
+      },
+      "tags": { "Tier": "Public" },
+      "evidence": { "source_collector": "route_table_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "sg-bastion-public",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "name": "bastion-security-group",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:security-group/sg-bastion-public",
+      "configuration": {
+        "vpc_id": "vpc-0a1b2c3d4e",
+        "inbound_rules": [
+          {
+            "ip_protocol": "tcp",
+            "from_port": 22,
+            "to_port": 22,
+            "cidr_ipv4": "0.0.0.0/0",
+            "description": "Administrative SSH from anywhere - RISKY"
+          },
+          {
+            "ip_protocol": "tcp",
+            "from_port": 443,
+            "to_port": 443,
+            "cidr_ipv4": "0.0.0.0/0",
+            "description": "Public HTTPS Web Traffic"
+          }
+        ],
+        "outbound_rules": [
+          { "ip_protocol": "-1", "cidr_ipv4": "0.0.0.0/0", "description": "All outbound permitted" }
+        ]
+      },
+      "tags": { "Tier": "DMZ" },
+      "evidence": { "source_collector": "security_group_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "eni-pub-web",
+      "resource_type": "AWS::EC2::NetworkInterface",
+      "name": "web-bastion-eni",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:network-interface/eni-pub-web",
+      "configuration": {
+        "subnet_id": "subnet-pub-1",
+        "private_ip": "10.0.1.42",
+        "public_ip": "54.210.10.42",
+        "security_groups": ["sg-bastion-public"]
+      },
+      "tags": { "Role": "Bastion" },
+      "evidence": { "source_collector": "eni_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "i-0a9b8c7d6e",
+      "resource_type": "AWS::EC2::Instance",
+      "name": "web-bastion-frontend",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:instance/i-0a9b8c7d6e",
+      "configuration": {
+        "instance_type": "t3.medium",
+        "state": "running",
+        "subnet_id": "subnet-pub-1",
+        "public_ip": "54.210.10.42",
+        "private_ip": "10.0.1.42",
+        "iam_instance_profile": "instance-profile-web",
+        "security_groups": ["sg-bastion-public"],
+        "network_interfaces": ["eni-pub-web"]
+      },
+      "tags": { "Role": "BastionFrontend", "Environment": "production" },
+      "evidence": { "source_collector": "ec2_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "role-web-app-production",
+      "resource_type": "AWS::IAM::Role",
+      "name": "production-web-app-ec2-role",
+      "arn": "arn:aws:iam::237657481511:role/production-web-app-ec2-role",
+      "configuration": {
+        "assume_role_policy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "ec2.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "attached_policies": ["policy-s3-sensitive-data"]
+      },
+      "tags": { "Environment": "production" },
+      "evidence": { "source_collector": "iam_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "policy-s3-sensitive-data",
+      "resource_type": "AWS::IAM::Policy",
+      "name": "SensitiveDataFullAccessPolicy",
+      "arn": "arn:aws:iam::237657481511:policy/SensitiveDataFullAccessPolicy",
+      "configuration": {
+        "policy_document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowS3ActionsOnFinancialBucket",
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
+              "Resource": [
+                "arn:aws:s3:::corporate-customer-financial-records",
+                "arn:aws:s3:::corporate-customer-financial-records/*"
+              ]
+            }
+          ]
+        }
+      },
+      "tags": { "Sensitivity": "Confidential" },
+      "evidence": { "source_collector": "iam_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "corporate-customer-financial-records",
+      "resource_type": "AWS::S3::Bucket",
+      "name": "corporate-customer-financial-records",
+      "arn": "arn:aws:s3:::corporate-customer-financial-records",
+      "configuration": {
+        "public_access_block": {
+          "block_public_acls": true,
+          "ignore_public_acls": true,
+          "block_public_policy": true,
+          "restrict_public_buckets": true
+        },
+        "encryption": { "status": "AES256" },
+        "versioning": { "status": "Enabled" }
+      },
+      "tags": { "DataClassification": "Restricted", "Owner": "Finance" },
+      "evidence": { "source_collector": "s3_collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "db-orders-postgres",
+      "resource_type": "AWS::RDS::DBInstance",
+      "name": "production-orders-db",
+      "arn": "arn:aws:rds:us-east-1:237657481511:db:production-orders-db",
+      "configuration": {
+        "engine": "postgres",
+        "engine_version": "16.1",
+        "publicly_accessible": false,
+        "vpc_id": "vpc-0a1b2c3d4e",
+        "subnet_id": "subnet-priv-1",
+        "storage_encrypted": true
+      },
+      "tags": { "Environment": "production", "Tier": "Database" },
+      "evidence": { "source_collector": "rds_collector", "confidence": 1.0 }
+    }
+  ],
+  "relationships": [
+    { "source_id": "vpc-0a1b2c3d4e", "target_id": "subnet-pub-1", "relationship": "CONTAINS" },
+    { "source_id": "vpc-0a1b2c3d4e", "target_id": "subnet-priv-1", "relationship": "CONTAINS" },
+    { "source_id": "vpc-0a1b2c3d4e", "target_id": "igw-01234567", "relationship": "ATTACHED_TO" },
+    { "source_id": "igw-01234567", "target_id": "subnet-pub-1", "relationship": "ROUTES_TO" },
+    { "source_id": "subnet-pub-1", "target_id": "rtb-pub", "relationship": "ASSOCIATED_WITH" },
+    { "source_id": "rtb-pub", "target_id": "igw-01234567", "relationship": "ROUTES_TO" },
+    { "source_id": "subnet-pub-1", "target_id": "eni-pub-web", "relationship": "CONTAINS" },
+    { "source_id": "eni-pub-web", "target_id": "i-0a9b8c7d6e", "relationship": "ATTACHED_TO" },
+    { "source_id": "sg-bastion-public", "target_id": "eni-pub-web", "relationship": "APPLIES_TO" },
+    { "source_id": "i-0a9b8c7d6e", "target_id": "role-web-app-production", "relationship": "ASSUMES" },
+    { "source_id": "role-web-app-production", "target_id": "policy-s3-sensitive-data", "relationship": "HAS_POLICY" },
+    { "source_id": "policy-s3-sensitive-data", "target_id": "corporate-customer-financial-records", "relationship": "GRANTS" },
+    { "source_id": "subnet-priv-1", "target_id": "db-orders-postgres", "relationship": "CONTAINS" }
+  ]
+}

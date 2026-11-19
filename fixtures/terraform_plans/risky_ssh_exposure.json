@@ -1,0 +1,88 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_security_group_rule.allow_global_ssh",
+          "mode": "managed",
+          "type": "aws_security_group_rule",
+          "name": "allow_global_ssh",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 2,
+          "values": {
+            "cidr_blocks": ["0.0.0.0/0"],
+            "description": "Administrative ingress for debugging - PROPOSED DRIFT",
+            "from_port": 22,
+            "protocol": "tcp",
+            "security_group_id": "sg-bastion-public",
+            "self": false,
+            "to_port": 22,
+            "type": "ingress"
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "aws_security_group_rule.allow_global_ssh",
+      "mode": "managed",
+      "type": "aws_security_group_rule",
+      "name": "allow_global_ssh",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "cidr_blocks": ["0.0.0.0/0"],
+          "description": "Administrative ingress for debugging - PROPOSED DRIFT",
+          "from_port": 22,
+          "protocol": "tcp",
+          "security_group_id": "sg-bastion-public",
+          "self": false,
+          "to_port": 22,
+          "type": "ingress"
+        },
+        "after_unknown": {
+          "id": true
+        }
+      }
+    }
+  ],
+  "configuration": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_security_group_rule.allow_global_ssh",
+          "mode": "managed",
+          "type": "aws_security_group_rule",
+          "name": "allow_global_ssh",
+          "provider_config_key": "aws",
+          "expressions": {
+            "cidr_blocks": {
+              "constant_value": ["0.0.0.0/0"]
+            },
+            "from_port": {
+              "constant_value": 22
+            },
+            "protocol": {
+              "constant_value": "tcp"
+            },
+            "security_group_id": {
+              "constant_value": "sg-bastion-public"
+            },
+            "to_port": {
+              "constant_value": 22
+            },
+            "type": {
+              "constant_value": "ingress"
+            }
+          },
+          "schema_version": 2
+        }
+      ]
+    }
+  }
+}
