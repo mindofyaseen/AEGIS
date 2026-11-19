@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AEGIS Production Cloud Infrastructure - S3 + CloudFront Serverless Deployment Stack'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'prod'
+    Description: 'Target deployment environment (prod/staging)'
+
+Resources:
+  # 1. S3 Static Hosting Storage Bucket
+  AegisWebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'aegis-security-platform-${AWS::AccountId}-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
+  # 2. CloudFront Origin Access Control (OAC)
+  AegisCloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'aegis-oac-${EnvironmentName}'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # 3. CloudFront CDN Distribution
+  AegisCDN:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Comment: 'AEGIS Autonomous Cloud Security Operations Platform CDN'
+        Origins:
+          - Id: AegisS3Origin
+            DomainName: !GetAtt AegisWebBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt AegisCloudFrontOAC.Id
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: AegisS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  # 4. S3 Bucket Policy allowing CloudFront Read Access
+  AegisBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AegisWebBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${AegisWebBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${AegisCDN.Id}'
+
+  # 5. Read-Only Cross-Account Audit Role
+  AegisAuditRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AegisSecurityAuditRole
+      Description: 'Read-only security inspection role for AEGIS Autonomous Cloud Security Platform'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/SecurityAudit
+        - arn:aws:iam::aws:policy/AWSOrganizationsReadOnlyAccess
+
+Outputs:
+  CloudFrontURL:
+    Description: 'Public Production URL of AEGIS Platform'
+    Value: !Sub 'https://${AegisCDN.DomainName}'
+  S3BucketName:
+    Description: 'Deployment S3 Bucket'
+    Value: !Ref AegisWebBucket
+  AuditRoleArn:
+    Description: 'Read-Only Audit Role ARN'
+    Value: !GetAtt AegisAuditRole.Arn
