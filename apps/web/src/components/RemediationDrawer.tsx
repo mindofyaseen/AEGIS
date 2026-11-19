@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { RemediationPatch } from '../types';
-import { Wrench, Copy, Check, RotateCcw, CheckSquare, Square, Terminal, Code2 } from 'lucide-react';
+import { RemediationPatch, RemediationPullRequest } from '../types';
+import { generateRemediationPullRequest } from '../api';
+import { Wrench, Copy, Check, RotateCcw, CheckSquare, Square, Terminal, Code2, GitPullRequest, X } from 'lucide-react';
 
 interface RemediationDrawerProps {
   patches: RemediationPatch[];
@@ -15,7 +16,10 @@ export const RemediationDrawer: React.FC<RemediationDrawerProps> = ({
 }) => {
   const [copiedCli, setCopiedCli] = useState(false);
   const [copiedTf, setCopiedTf] = useState(false);
+  const [copiedPatch, setCopiedPatch] = useState(false);
   const [checkedSteps, setCheckedSteps] = useState<{ [key: string]: boolean }>({});
+  const [synthesizedPR, setSynthesizedPR] = useState<RemediationPullRequest | null>(null);
+  const [isGeneratingPR, setIsGeneratingPR] = useState(false);
 
   if (patches.length === 0) {
     return (
@@ -49,6 +53,18 @@ export const RemediationDrawer: React.FC<RemediationDrawerProps> = ({
     }
   };
 
+  const handleSynthesizePR = async () => {
+    setIsGeneratingPR(true);
+    try {
+      const pr = await generateRemediationPullRequest(patch);
+      setSynthesizedPR(pr);
+    } catch (e) {
+      console.error('Failed to generate PR', e);
+    } finally {
+      setIsGeneratingPR(false);
+    }
+  };
+
   const toggleStep = (stepIdx: number) => {
     const key = `${activePatchIndex}-${stepIdx}`;
     setCheckedSteps((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -73,25 +89,40 @@ export const RemediationDrawer: React.FC<RemediationDrawerProps> = ({
           </p>
         </div>
 
-        {/* Patch selector tabs */}
-        {patches.length > 1 && (
-          <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
-            {patches.map((p, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActivePatchIndex(idx)}
-                className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
-                  activePatchIndex === idx
-                    ? 'bg-cyan-500 text-black shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {p.target_resource_id.slice(0, 14)}...
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Phase 2 PR Generator Button */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSynthesizePR}
+            disabled={isGeneratingPR}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all disabled:opacity-50"
+          >
+            <GitPullRequest className="w-3.5 h-3.5" />
+            <span>{isGeneratingPR ? 'Generating...' : 'Synthesize Git PR (Phase 2)'}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Patch selector tabs */}
+      {patches.length > 1 && (
+        <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          {patches.map((p, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                setActivePatchIndex(idx);
+                setSynthesizedPR(null);
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
+                activePatchIndex === idx
+                  ? 'bg-cyan-500 text-black shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {p.target_resource_id.slice(0, 14)}...
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Target Resource & Action */}
       <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
@@ -105,6 +136,55 @@ export const RemediationDrawer: React.FC<RemediationDrawerProps> = ({
           {patch.suggested_action}
         </p>
       </div>
+
+      {/* Synthesized PR Flyout (Phase 2) */}
+      {synthesizedPR && (
+        <div className="bg-indigo-950/40 border border-indigo-700/60 p-4 rounded-xl space-y-3 animate-in fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wide">
+              <GitPullRequest className="w-4 h-4" />
+              <span>Automated Pull Request Payload Synthesized</span>
+            </div>
+            <button
+              onClick={() => setSynthesizedPR(null)}
+              className="text-xs text-slate-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div className="bg-slate-950/80 p-2 rounded border border-slate-800">
+              <span className="text-slate-400 text-[10px] block">Branch Name:</span>
+              <span className="text-cyan-300">{synthesizedPR.remediation_branch}</span>
+            </div>
+            <div className="bg-slate-950/80 p-2 rounded border border-slate-800">
+              <span className="text-slate-400 text-[10px] block">Patch File:</span>
+              <span className="text-emerald-300">{synthesizedPR.patch_filename}</span>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Unified Git .patch Diff:</span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(synthesizedPR.unified_patch_content);
+                  setCopiedPatch(true);
+                  setTimeout(() => setCopiedPatch(false), 2000);
+                }}
+                className="text-cyan-400 text-[11px] font-mono hover:underline flex items-center gap-1"
+              >
+                {copiedPatch ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedPatch ? 'Copied' : 'Copy .patch'}</span>
+              </button>
+            </div>
+            <pre className="p-2.5 rounded bg-slate-950 text-[11px] font-mono text-emerald-300 overflow-x-auto border border-slate-800">
+              {synthesizedPR.unified_patch_content}
+            </pre>
+          </div>
+        </div>
+      )}
 
       {/* Terraform Minimal Diff */}
       {patch.terraform_patch && (

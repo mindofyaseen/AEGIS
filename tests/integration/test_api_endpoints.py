@@ -88,3 +88,37 @@ def test_adversarial_tests_status():
     assert data["total_tests"] == 14
     assert data["passed"] == 14
     assert data["failed"] == 0
+
+
+def test_phase2_multi_account_endpoint():
+    response = client.get("/api/phase2/multi-account")
+    assert response.status_code == 200
+    data = response.json()
+    assert "harvest_report" in data
+    assert data["harvest_report"]["total_accounts_targeted"] == 2
+    assert len(data["topology"]["resources"]) > 0
+
+
+def test_phase2_correlate_threats_endpoint():
+    response = client.post("/api/phase2/correlate-threats")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["active_threats_count"] >= 1
+    assert data["correlated_findings_count"] >= 1
+
+
+def test_phase2_generate_pr_endpoint():
+    patch_payload = {
+        "target_resource_id": "sg-bastion-public",
+        "suggested_action": "Restrict SSH to corporate CIDR",
+        "terraform_patch": "resource \"aws_security_group_rule\" \"ssh\" {}",
+        "cli_command_preview": "aws ec2 revoke-security-group-ingress",
+        "rollback_plan": "Revert rule",
+        "verification_steps": ["Verify connection fails from external IP"],
+    }
+    response = client.post("/api/phase2/generate-pr", json=patch_payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "aegis/security-patch-sg-bastion-public" in data["remediation_branch"]
+    assert "remediation-sg-bastion-public.patch" in data["patch_filename"]
+    assert "## 🛡️ AEGIS Automated Security Remediation Pull Request" in data["pr_body_markdown"]

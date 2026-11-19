@@ -108,3 +108,17 @@ export interface Scenario {
   expected_verdict: Verdict;
   description: string;
 }
+
+export interface RemediationPullRequest {
+  pr_id: string;
+  target_branch: string;
+  remediation_branch: string;
+  commit_message: string;
+  pr_title: string;
+  pr_body_markdown: string;
+  patch_filename: string;
+  unified_patch_content: string;
+  target_resources: string[];
+  created_at: string;
+}
+

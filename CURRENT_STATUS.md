@@ -10,14 +10,18 @@
 ---
 
 ## 1. What Is Working
-- **Full Test Suite:** **48 / 48 tests passing** (14/14 adversarial tests, 24/24 core unit tests, 10/10 FastAPI integration tests) in 3.61 seconds with zero warnings.
+- **Full Test Suite:** **62 / 62 tests passing** (14/14 adversarial tests, 24/24 core unit tests, 11/11 Phase 2 enterprise tests, 13/13 FastAPI integration tests) in 4.81 seconds with zero warnings.
+- **Phase 2 CI/CD Pull Request Gatekeeper:** Executable Python CLI (`cli/aegis_cli.py`) and GitHub Action workflow (`.github/workflows/aegis_gatekeeper.yml`) with deterministic blocking exit codes.
+- **Phase 2 AWS Organizations Multi-Account Harvester:** Cross-account STS `AssumeRole` discovery aggregating multi-account topologies while enforcing Rule 01 boundary isolation.
+- **Phase 2 Security Hub & GuardDuty Correlator:** Ingestion and correlation of active runtime threats with static attack paths (`SEC-THREAT-01`).
+- **Phase 2 Automated Remediation PR Generator:** Automated synthesis of Git branches, unified diff `.patch` files, and GitHub PR review payloads.
 - **Bedrock AgentCore Harness:** Boto3 `bedrock-agentcore` and `bedrock-agentcore-control` driver with tool parameter validation, quarantine boundaries, and prompt injection defense.
 - **Knowledge Graph Engine:** NetworkX MultiDiGraph modeling directional cloud relationships (`CONTAINS`, `ROUTES_TO`, `ASSOCIATED_WITH`, `ASSUMES`, `GRANTS`).
 - **Context Completeness Gate:** Deterministic mathematical gate blocking verdicts on incomplete telemetry (100% fail-closed).
 - **Multi-Hop Attack Path Tracer:** Breadth-first search tracing public internet ingress to internal crown-jewel assets.
 - **Rule 14 Remediation Planner:** Automated synthesis of minimal Terraform patches, AWS CLI commands, deterministic rollback plans, and verification checklists.
 - **CloudTrail Forensics Timeline:** Management event log correlator flagging perimeter-mutating actions.
-- **Executive Command Center:** React 18 + TypeScript + Tailwind CSS dashboard bundled and hosted directly via FastAPI static file mount.
+- **Executive Command Center:** React 18 + TypeScript + Tailwind CSS dashboard with Phase 2 automated PR generator and multi-account endpoints.
 
 ---
 
@@ -26,14 +30,18 @@
 | Test Category | File Path | Total Tests | Passed | Execution Time |
 | :--- | :--- | :--- | :--- | :--- |
 | **Adversarial Red-Team Suite** | `tests/adversarial/test_adversarial_suite.py` | 14 | 14 | 2.02s |
-| **FastAPI Integration & SPA** | `tests/integration/test_api_endpoints.py` | 10 | 10 | 0.50s |
+| **FastAPI Integration & SPA** | `tests/integration/test_api_endpoints.py` | 13 | 13 | 0.65s |
+| **Phase 2 CI/CD Gatekeeper CLI** | `tests/phase2/test_cli_gatekeeper.py` | 5 | 5 | 0.45s |
+| **Phase 2 Multi-Account Harvester** | `tests/phase2/test_multi_account.py` | 3 | 3 | 0.05s |
+| **Phase 2 Security Hub Correlator** | `tests/phase2/test_security_hub_correlator.py` | 2 | 2 | 0.05s |
+| **Phase 2 Remediation PR Generator** | `tests/phase2/test_pr_generator.py` | 1 | 1 | 0.05s |
 | **Attack Path Tracer Unit** | `tests/unit/test_attack_path_tracer.py` | 3 | 3 | 0.05s |
 | **Bedrock Harness Unit** | `tests/unit/test_bedrock_harness.py` | 5 | 5 | 0.15s |
 | **Context Completeness Unit** | `tests/unit/test_context_completeness.py` | 5 | 5 | 0.05s |
 | **Remediation Planner Unit** | `tests/unit/test_remediation_planner.py` | 4 | 4 | 0.05s |
 | **Terraform Change Analyzer Unit** | `tests/unit/test_terraform_analyzer.py` | 4 | 4 | 0.05s |
 | **CloudTrail Timeline Engine Unit** | `tests/unit/test_timeline_engine.py` | 3 | 3 | 0.05s |
-| **Total** | | **48** | **48** | **3.61s** |
+| **Total** | | **62** | **62** | **4.81s** |
 
 ---
 

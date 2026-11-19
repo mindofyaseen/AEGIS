@@ -97,3 +97,26 @@ export async function fetchRulesDocument(): Promise<string> {
   }
   return 'Rule documentation loaded.';
 }
+
+export async function fetchMultiAccountTopology(): Promise<any> {
+  const res = await fetch(`${API_BASE}/phase2/multi-account`);
+  if (!res.ok) throw new Error('Failed to load multi-account topology');
+  return await res.json();
+}
+
+export async function triggerThreatCorrelation(): Promise<any> {
+  const res = await fetch(`${API_BASE}/phase2/correlate-threats`, { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to correlate runtime threats');
+  return await res.json();
+}
+
+export async function generateRemediationPullRequest(patch: any): Promise<any> {
+  const res = await fetch(`${API_BASE}/phase2/generate-pr`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error('Failed to generate remediation PR');
+  return await res.json();
+}
+

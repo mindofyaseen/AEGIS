@@ -215,6 +215,79 @@ def get_adversarial_test_status():
     }
 
 
+# ==========================================
+# PHASE 2 ENTERPRISE EXTENSION ENDPOINTS
+# ==========================================
+from services.aws_discovery.multi_account import MultiAccountHarvester, AccountHarvestTarget
+from services.security_engine.security_hub_correlator import SecurityHubGuardDutyCorrelator, RuntimeThreatEvent
+from services.remediation_planner.pr_generator import RemediationPRGenerator, RemediationPullRequest
+from backend.models import RemediationPatch
+
+multi_harvester = MultiAccountHarvester(authorized_account_ids=["237657481511", "999888777666"])
+threat_correlator = SecurityHubGuardDutyCorrelator()
+pr_generator = RemediationPRGenerator()
+
+
+@app.get("/api/phase2/multi-account")
+def get_multi_account_topology():
+    """Phase 2: Ingest and aggregate multi-account AWS Organizations topology."""
+    targets = [
+        AccountHarvestTarget(account_id="237657481511", account_name="Production-Core"),
+        AccountHarvestTarget(account_id="999888777666", account_name="Staging-Workloads"),
+    ]
+    prod_topo = load_fixture_json("aws_topologies", "ecommerce_vpc.json")
+    stage_topo = load_fixture_json("aws_topologies", "compliant_vpc.json")
+
+    res = multi_harvester.harvest_multi_account_topology(
+        targets=targets,
+        synthetic_account_topologies={
+            "237657481511": prod_topo,
+            "999888777666": stage_topo,
+        },
+    )
+    return res
+
+
+@app.post("/api/phase2/correlate-threats")
+def correlate_threats(sample_guardduty: bool = True):
+    """Phase 2: Correlate Amazon GuardDuty / Security Hub threats with attack paths."""
+    topo = load_fixture_json("aws_topologies", "ecommerce_vpc.json")
+    report = investigator.run_investigation(topology_data=topo)
+
+    sample_threats = [
+        RuntimeThreatEvent(
+            threat_id="GD-SSH-EXPLOIT-01",
+            service="GuardDuty",
+            threat_type="UnauthorizedAccess:EC2/SSHBruteForce",
+            affected_resource_id="i-0a1b2c3d4e5f67890",
+            severity_score=8.5,
+            description="Active external SSH brute force attack observed against bastion instance",
+            detected_at="2026-11-19T16:00:00Z",
+            source_ip="203.0.113.195",
+        )
+    ]
+
+    correlated = threat_correlator.correlate_threats_with_attack_paths(
+        runtime_threats=sample_threats,
+        attack_paths=report.attack_paths,
+    )
+    return {
+        "active_threats_count": len(sample_threats),
+        "correlated_findings_count": len(correlated),
+        "findings": [f.model_dump() for f in correlated],
+    }
+
+
+@app.post("/api/phase2/generate-pr", response_model=RemediationPullRequest)
+def generate_remediation_pr(patch: RemediationPatch = Body(...)):
+    """Phase 2: Synthesize automated ready-to-merge GitHub Pull Request with Rule 14 patch."""
+    return pr_generator.generate_pull_request(
+        patch=patch,
+        investigation_id="INV-PROD-AUTOMATED",
+        account_id="237657481511",
+    )
+
+
 DIST_DIR = Path(__file__).resolve().parent.parent.parent / "apps" / "web" / "dist"
 if DIST_DIR.exists():
     from fastapi.staticfiles import StaticFiles
