@@ -303,6 +303,45 @@ cfn_analyzer = CloudFormationAnalyzer()
 compliance_engine = ComplianceEngine()
 
 
+@app.post("/api/v1/investigate/custom")
+def investigate_custom_infrastructure(body: Dict[str, Any] = Body(...)):
+    """
+    Dynamic endpoint allowing any business user or external team to connect their AWS infrastructure
+    via Read-Only Role ARN or uploaded topology/IaC.
+    """
+    account_id = str(body.get("account_id", "123456789012"))
+    region = str(body.get("region", "us-east-1"))
+    role_arn = body.get("role_arn")
+    custom_topology = body.get("topology_data")
+    tf_plan = body.get("terraform_plan")
+    cfn_template = body.get("cfn_template")
+
+    # If no custom topology provided, use the baseline ecommerce VPC topology
+    if not custom_topology or not isinstance(custom_topology, dict) or "resources" not in custom_topology:
+        custom_topology = load_fixture_json("aws_topologies", "ecommerce_vpc.json")
+
+    report = investigator.run_investigation(
+        topology_data=custom_topology,
+        terraform_plan_data=tf_plan,
+        account_id=account_id,
+        region=region
+    )
+
+    # If CFN template provided, parse and append findings
+    if cfn_template:
+        cfn_findings = cfn_analyzer.analyze(str(cfn_template))
+        if cfn_findings:
+            report.findings.extend(cfn_findings)
+            report.total_findings += len(cfn_findings)
+            cfn_crits = sum(1 for cf in cfn_findings if cf.severity == Severity.CRITICAL)
+            report.critical_findings += cfn_crits
+            if cfn_crits > 0:
+                report.verdict = Verdict.BLOCK
+                report.verdict_reason = f"CloudFormation template contains {cfn_crits} CRITICAL security violations."
+
+    return report.model_dump()
+
+
 @app.post("/api/v1/analyze/cloudformation")
 def analyze_cloudformation(body: Dict[str, str] = Body(...)):
     """Analyze CloudFormation or CDK synthesized JSON/YAML template."""

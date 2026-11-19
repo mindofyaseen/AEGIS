@@ -76,6 +76,25 @@ export async function runScenarioInvestigation(scenarioId: string): Promise<Inve
   return await res.json();
 }
 
+export async function investigateCustomInfrastructure(payload: {
+  account_id?: string;
+  region?: string;
+  role_arn?: string;
+  topology_data?: any;
+  terraform_plan?: any;
+  cfn_template?: string;
+}): Promise<InvestigationReport> {
+  const res = await fetch(`${API_BASE}/v1/investigate/custom`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(`Custom investigation failed with status ${res.status}`);
+  }
+  return await res.json();
+}
+
 export async function fetchCloudTrailTimeline(): Promise<TimelineEvent[]> {
   const res = await fetch(`${API_BASE}/cloudtrail/timeline`);
   if (!res.ok) {

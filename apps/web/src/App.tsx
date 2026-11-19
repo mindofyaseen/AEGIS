@@ -11,6 +11,7 @@ import { PageAgentConsole } from './pages/PageAgentConsole';
 import { PageGovernance } from './pages/PageGovernance';
 import { PageAdversarialLab } from './pages/PageAdversarialLab';
 import { PageComplianceAudit } from './pages/PageComplianceAudit';
+import { ConnectCloudModal } from './components/ConnectCloudModal';
 import {
   AppPage,
   InvestigationReport,
@@ -39,6 +40,8 @@ export const App: React.FC = () => {
   const [rulesDoc, setRulesDoc] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedFinding, setSelectedFinding] = useState<SecurityFinding | null>(null);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [viewAudience, setViewAudience] = useState<'business' | 'technical'>('business');
 
   // Initial Data Bootstrap
   useEffect(() => {
@@ -111,24 +114,30 @@ export const App: React.FC = () => {
   const isHardenedScenario = selectedScenario === 'ready-review';
 
   return (
-    <ApplicationShell
-      activePage={activePage}
-      setActivePage={setActivePage}
-      scenarios={scenarios}
-      selectedScenario={selectedScenario}
-      onSelectScenario={loadScenario}
-      loading={loading}
-      onRefresh={() => loadScenario(selectedScenario)}
-    >
-      {activePage === 'overview' && (
-        <PageOverview
-          report={report}
-          loading={loading}
-          onNavigate={(page) => setActivePage(page)}
-          onSelectFinding={(f) => setSelectedFinding(f)}
-          isHardened={isHardenedScenario}
-        />
-      )}
+    <>
+      <ApplicationShell
+        activePage={activePage}
+        setActivePage={setActivePage}
+        scenarios={scenarios}
+        selectedScenario={selectedScenario}
+        onSelectScenario={loadScenario}
+        loading={loading}
+        onRefresh={() => loadScenario(selectedScenario)}
+        onOpenConnectModal={() => setIsConnectModalOpen(true)}
+        viewAudience={viewAudience}
+        setViewAudience={setViewAudience}
+      >
+        {activePage === 'overview' && (
+          <PageOverview
+            report={report}
+            loading={loading}
+            onNavigate={(page) => setActivePage(page)}
+            onSelectFinding={(f) => setSelectedFinding(f)}
+            isHardened={isHardenedScenario}
+            viewAudience={viewAudience}
+            onOpenConnectModal={() => setIsConnectModalOpen(true)}
+          />
+        )}
 
       {activePage === 'explorer' && (
         <PageExplorer
@@ -193,5 +202,15 @@ export const App: React.FC = () => {
         />
       )}
     </ApplicationShell>
-  );
+
+    <ConnectCloudModal
+      isOpen={isConnectModalOpen}
+      onClose={() => setIsConnectModalOpen(false)}
+      onConnected={(customReport) => {
+        setReport(customReport);
+        setActivePage('overview');
+      }}
+    />
+  </>
+);
 };

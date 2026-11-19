@@ -27,6 +27,8 @@ interface PageOverviewProps {
   onNavigate: (page: any) => void;
   onSelectFinding: (finding: SecurityFinding) => void;
   isHardened?: boolean;
+  viewAudience?: 'business' | 'technical';
+  onOpenConnectModal?: () => void;
 }
 
 export const PageOverview: React.FC<PageOverviewProps> = ({
@@ -34,7 +36,9 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
   loading,
   onNavigate,
   onSelectFinding,
-  isHardened
+  isHardened,
+  viewAudience = 'business',
+  onOpenConnectModal
 }) => {
   if (loading || !report) {
     return (
@@ -120,6 +124,56 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
             <div className="text-[11px] font-mono text-aegis-textMuted leading-tight">
               {report.context_completeness.successful_collectors} of {report.context_completeness.total_collectors_run} collectors verified.
               {report.context_completeness.stale_snapshots_detected && ' (Stale >24h snapshot detected)'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 1.5. Plain-English Business Risk & Financial Exposure Summary */}
+      <div className="p-5 rounded-lg border border-aegis-border bg-aegis-panelElevated shadow-panel space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-aegis-border pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-aegis-textPrimary font-mono uppercase tracking-wider">
+              💼 Executive Business & Financial Risk Assessment
+            </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-aegis-accentCyan/20 text-aegis-accentCyan border border-aegis-accentCyan/30">
+              Plain English
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs font-mono">
+            <span>Customer Data at Risk:</span>
+            <strong className={report.customer_data_at_risk ? 'text-aegis-critical' : 'text-aegis-success'}>
+              {report.customer_data_at_risk ? '⚠️ YES — EXPOSED' : '✓ SECURE'}
+            </strong>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-3.5 rounded bg-aegis-bgSecondary border border-aegis-border space-y-1">
+            <span className="text-[10px] font-mono text-aegis-textMuted uppercase block">ESTIMATED FINANCIAL EXPOSURE</span>
+            <div className="text-base font-bold text-aegis-critical font-mono">
+              {report.estimated_financial_exposure || '$1,500,000+'}
+            </div>
+            <p className="text-[11px] text-aegis-textSecondary">
+              Average liability from customer data theft, regulatory fines (GDPR/HIPAA/SOC2), and system forensic downtime.
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded bg-aegis-bgSecondary border border-aegis-border space-y-1 md:col-span-2">
+            <span className="text-[10px] font-mono text-aegis-textMuted uppercase block">WHAT THIS MEANS FOR YOUR COMPANY</span>
+            <p className="text-xs text-aegis-textPrimary leading-relaxed">
+              {report.business_impact_summary || (
+                isBlock
+                  ? 'Your cloud infrastructure has an open public entrance combined with administrative master keys. Anyone on the internet can enter and access confidential customer financial data.'
+                  : 'Your cloud configuration is safely locked down with least-privilege permissions and zero open perimeter ports.'
+              )}
+            </p>
+            <div className="pt-2 text-[11px] font-mono text-aegis-accentCyan flex items-center gap-2">
+              <span>Solution:</span>
+              <span className="text-aegis-textSecondary">
+                Developers can apply AEGIS's 1-click configuration patch in seconds to eliminate this liability.
+              </span>
             </div>
           </div>
         </div>

@@ -93,6 +93,9 @@ export interface InvestigationReport {
   remediation_patches: RemediationPatch[];
   agent_reasoning_summary: string;
   enforced_rules_evaluated: string[];
+  business_impact_summary?: string;
+  estimated_financial_exposure?: string;
+  customer_data_at_risk?: boolean;
 }
 
 export interface TimelineEvent {

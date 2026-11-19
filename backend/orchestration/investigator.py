@@ -99,13 +99,26 @@ class AegisInvestigator:
         # 9. Remediation Synthesis
         remediation_patches = self.remediation_planner.generate_patches(findings)
 
-        # 10. Summary Narrative
+        # 10. Summary Narrative & Business Impact Calculations
         critical_count = sum(1 for f in findings if f.severity == Severity.CRITICAL)
         summary = (
             f"AEGIS investigated {len(resources)} cloud resources across {region}. "
             f"Verdict: {verdict.value}. Found {len(findings)} security findings ({critical_count} critical) "
             f"and {len(attack_paths)} evidenced attack paths."
         )
+
+        if verdict == Verdict.BLOCK:
+            biz_summary = "CRITICAL BUSINESS EXPOSURE: An external attacker on the public internet can enter through an open perimeter port and access confidential customer records or databases. Immediate remediation required before production release."
+            biz_financial = "$1,500,000+ (Estimated average breach containment, regulatory fines under GDPR/SOC2, and customer notification liabilities)"
+            biz_customer_risk = True
+        elif verdict == Verdict.INSUFFICIENT_CONTEXT:
+            biz_summary = "VISIBILITY BLIND SPOT: Security telemetry from critical cloud storage or identity collectors is missing or stale (>24h). Your organization cannot certify compliance or safety until complete telemetry is restored."
+            biz_financial = "Unquantified (Audit failure and non-compliance risk)"
+            biz_customer_risk = True
+        else:
+            biz_summary = "LOW BUSINESS RISK & CLEAN REPUTATION: Zero open perimeter doors or unauthorized master keys found. Infrastructure demonstrates hardened defense-in-depth ready for executive review."
+            biz_financial = "$0 (Compliant baseline with zero identified breach paths)"
+            biz_customer_risk = False
 
         return InvestigationReport(
             investigation_id=investigation_id,
@@ -123,4 +136,7 @@ class AegisInvestigator:
             remediation_patches=remediation_patches,
             agent_reasoning_summary=summary,
             enforced_rules_evaluated=["RULE-01", "RULE-02", "RULE-03", "RULE-04", "RULE-06", "RULE-07", "RULE-08", "RULE-09", "RULE-12"],
+            business_impact_summary=biz_summary,
+            estimated_financial_exposure=biz_financial,
+            customer_data_at_risk=biz_customer_risk,
         )

@@ -184,3 +184,20 @@ def test_bedrock_guardrails_spec_endpoint():
     assert "cloudformation_template" in data
     assert data["boto3_create_guardrail_payload"]["name"] == "aegis-cloud-security-guardrail"
 
+
+def test_custom_infrastructure_investigation_endpoint():
+    payload = {
+        "account_id": "999111222333",
+        "region": "us-west-2",
+        "role_arn": "arn:aws:iam::999111222333:role/AegisSecurityAuditRole"
+    }
+    response = client.post("/api/v1/investigate/custom", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["account_id"] == "999111222333"
+    assert data["region"] == "us-west-2"
+    assert "business_impact_summary" in data
+    assert data["business_impact_summary"] is not None
+    assert "estimated_financial_exposure" in data
+
+

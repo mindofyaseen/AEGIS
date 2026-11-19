@@ -19,7 +19,8 @@ import {
   Lock,
   Globe,
   Terminal,
-  Server
+  Server,
+  Cloud
 } from 'lucide-react';
 import { AppPage, Scenario } from '../types';
 
@@ -31,6 +32,9 @@ interface ApplicationShellProps {
   onSelectScenario: (scenarioId: string) => void;
   loading: boolean;
   onRefresh: () => void;
+  onOpenConnectModal?: () => void;
+  viewAudience?: 'business' | 'technical';
+  setViewAudience?: (aud: 'business' | 'technical') => void;
   children: React.ReactNode;
 }
 
@@ -42,6 +46,9 @@ export const ApplicationShell: React.FC<ApplicationShellProps> = ({
   onSelectScenario,
   loading,
   onRefresh,
+  onOpenConnectModal,
+  viewAudience = 'business',
+  setViewAudience,
   children
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -115,6 +122,45 @@ export const ApplicationShell: React.FC<ApplicationShellProps> = ({
 
         {/* Global Controls & Scenario Switcher */}
         <div className="flex items-center gap-3">
+          {/* Executive vs SecOps Audience Toggle */}
+          {setViewAudience && (
+            <div className="hidden sm:flex items-center gap-1 bg-aegis-panel border border-aegis-border rounded p-0.5 text-[11px] font-mono">
+              <button
+                onClick={() => setViewAudience('business')}
+                className={`px-2 py-0.5 rounded transition-all ${
+                  viewAudience === 'business'
+                    ? 'bg-aegis-accentCyan text-black font-semibold'
+                    : 'text-aegis-textMuted hover:text-aegis-textPrimary'
+                }`}
+                title="Simplified Plain English for Executives & Founders"
+              >
+                Executive Mode
+              </button>
+              <button
+                onClick={() => setViewAudience('technical')}
+                className={`px-2 py-0.5 rounded transition-all ${
+                  viewAudience === 'technical'
+                    ? 'bg-aegis-accentBlue text-black font-semibold'
+                    : 'text-aegis-textMuted hover:text-aegis-textPrimary'
+                }`}
+                title="Deep SecOps Technical Architecture"
+              >
+                SecOps Mode
+              </button>
+            </div>
+          )}
+
+          {/* Connect Custom AWS Infrastructure Button */}
+          {onOpenConnectModal && (
+            <button
+              onClick={onOpenConnectModal}
+              className="px-3 py-1.5 rounded bg-gradient-to-r from-aegis-accentBlue to-aegis-accentCyan hover:opacity-90 text-black font-semibold text-xs font-mono flex items-center gap-1.5 shadow-glow-cyan transition-all"
+            >
+              <Cloud className="w-3.5 h-3.5" />
+              <span>+ Connect AWS</span>
+            </button>
+          )}
+
           {/* Active Scenario Selector */}
           <div className="flex items-center gap-2">
             <label className="text-xs font-mono text-aegis-textMuted hidden lg:inline">Investigation Context:</label>

@@ -167,3 +167,6 @@ class InvestigationReport(BaseModel):
     remediation_patches: List[RemediationPatch] = Field(default_factory=list)
     agent_reasoning_summary: str
     enforced_rules_evaluated: List[str] = Field(default_factory=list)
+    business_impact_summary: Optional[str] = None
+    estimated_financial_exposure: Optional[str] = None
+    customer_data_at_risk: Optional[bool] = None
