@@ -1,0 +1,130 @@
+{
+  "resources": [
+    {
+      "resource_id": "vpc-compliant-prod",
+      "resource_type": "AWS::EC2::VPC",
+      "name": "Production Compliant VPC",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:vpc/vpc-compliant-prod",
+      "configuration": { "cidr_block": "10.100.0.0/16", "is_default": false },
+      "evidence": { "source_collector": "EC2Collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "igw-compliant-01",
+      "resource_type": "AWS::EC2::InternetGateway",
+      "name": "Production Egress Gateway",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:internet-gateway/igw-compliant-01",
+      "configuration": { "attachments": ["vpc-compliant-prod"] },
+      "evidence": { "source_collector": "EC2Collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "subnet-dmz-01",
+      "resource_type": "AWS::EC2::Subnet",
+      "name": "DMZ WAF Subnet",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:subnet/subnet-dmz-01",
+      "configuration": { "cidr_block": "10.100.1.0/24", "map_public_ip_on_launch": false },
+      "evidence": { "source_collector": "EC2Collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "sg-hardened-web",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "name": "Hardened Web Ingress SG",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:security-group/sg-hardened-web",
+      "configuration": {
+        "group_name": "hardened-web-sg",
+        "ip_permissions": [
+          {
+            "from_port": 443,
+            "to_port": 443,
+            "ip_protocol": "tcp",
+            "ip_ranges": [{ "cidr_ip": "0.0.0.0/0", "description": "Public HTTPS" }]
+          }
+        ]
+      },
+      "evidence": { "source_collector": "EC2Collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "i-web-worker-01",
+      "resource_type": "AWS::EC2::Instance",
+      "name": "Compliant Web App Worker",
+      "arn": "arn:aws:ec2:us-east-1:237657481511:instance/i-web-worker-01",
+      "configuration": {
+        "instance_type": "t4g.medium",
+        "iam_instance_profile": "CompliantAppRole",
+        "private_ip": "10.100.1.42",
+        "public_ip": null
+      },
+      "evidence": { "source_collector": "EC2Collector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "role-scoped-least-privilege",
+      "resource_type": "AWS::IAM::Role",
+      "name": "CompliantAppRole",
+      "arn": "arn:aws:iam::237657481511:role/CompliantAppRole",
+      "configuration": {
+        "assume_role_policy": {
+          "Statement": [{ "Action": "sts:AssumeRole", "Effect": "Allow", "Principal": { "Service": "ec2.amazonaws.com" } }]
+        },
+        "inline_policies": {
+          "ScopedStoragePolicy": {
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["s3:GetObject"],
+                "Resource": ["arn:aws:s3:::hardened-archive-vault/*"]
+              }
+            ]
+          }
+        }
+      },
+      "evidence": { "source_collector": "IAMCollector", "confidence": 1.0 }
+    },
+    {
+      "resource_id": "hardened-archive-vault",
+      "resource_type": "AWS::S3::Bucket",
+      "name": "hardened-archive-vault",
+      "arn": "arn:aws:s3:::hardened-archive-vault",
+      "configuration": {
+        "public_access_block": {
+          "block_public_acls": true,
+          "ignore_public_acls": true,
+          "block_public_policy": true,
+          "restrict_public_buckets": true
+        },
+        "server_side_encryption": { "rule": "aws:kms" }
+      },
+      "evidence": { "source_collector": "S3Collector", "confidence": 1.0 }
+    }
+  ],
+  "relationships": [
+    {
+      "source_id": "vpc-compliant-prod",
+      "target_id": "subnet-dmz-01",
+      "relationship": "CONTAINS",
+      "evidence": { "source_collector": "EC2Collector", "confidence": 1.0 }
+    },
+    {
+      "source_id": "subnet-dmz-01",
+      "target_id": "i-web-worker-01",
+      "relationship": "CONTAINS",
+      "evidence": { "source_collector": "EC2Collector", "confidence": 1.0 }
+    },
+    {
+      "source_id": "i-web-worker-01",
+      "target_id": "sg-hardened-web",
+      "relationship": "ASSOCIATED_WITH",
+      "evidence": { "source_collector": "EC2Collector", "confidence": 1.0 }
+    },
+    {
+      "source_id": "i-web-worker-01",
+      "target_id": "role-scoped-least-privilege",
+      "relationship": "ASSUMES",
+      "evidence": { "source_collector": "IAMCollector", "confidence": 1.0 }
+    },
+    {
+      "source_id": "role-scoped-least-privilege",
+      "target_id": "hardened-archive-vault",
+      "relationship": "GRANTS",
+      "evidence": { "source_collector": "IAMCollector", "confidence": 1.0 }
+    }
+  ]
+}

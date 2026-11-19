@@ -26,6 +26,7 @@ from services.attack_path.tracer import AttackPathTracer
 from services.policy_engine.context_completeness import ContextCompletenessEngine
 from services.policy_engine.engine import PolicyEngine
 from services.change_analysis.terraform_parser import TerraformChangeAnalyzer
+from services.remediation_planner.patch_generator import RemediationPlanner
 
 
 class AegisInvestigator:
@@ -34,6 +35,7 @@ class AegisInvestigator:
         self.security_engine = SecurityEngine()
         self.policy_engine = PolicyEngine()
         self.tf_analyzer = TerraformChangeAnalyzer()
+        self.remediation_planner = RemediationPlanner()
 
     def run_investigation(
         self,
@@ -95,28 +97,7 @@ class AegisInvestigator:
         )
 
         # 9. Remediation Synthesis
-        remediation_patches: List[RemediationPatch] = []
-        for finding in findings:
-            if finding.rule_id == "SEC-NET-01" or finding.rule_id == "SEC-TF-01":
-                patch = RemediationPatch(
-                    target_resource_id=finding.affected_resource_id,
-                    suggested_action="Restrict Security Group ingress to authorized CIDR",
-                    terraform_patch="""resource "aws_security_group_rule" "restricted_ssh" {
-  type              = "ingress"
-  from_port         = 22
-  to_port           = 22
-  protocol          = "tcp"
-  cidr_blocks       = ["198.51.100.0/24"] # Authorized corporate CIDR only
-  security_group_id = aws_security_group.bastion.id
-}""",
-                    cli_command_preview="aws ec2 revoke-security-group-ingress --group-id sg-bastion-public --protocol tcp --port 22 --cidr 0.0.0.0/0",
-                    rollback_plan="Re-apply previous verified security group state file.",
-                    verification_steps=[
-                        "Verify port 22 is unreachable from public IP addresses outside the authorized CIDR.",
-                        "Confirm bastion access remains operational from corporate VPN.",
-                    ],
-                )
-                remediation_patches.append(patch)
+        remediation_patches = self.remediation_planner.generate_patches(findings)
 
         # 10. Summary Narrative
         critical_count = sum(1 for f in findings if f.severity == Severity.CRITICAL)
