@@ -5,7 +5,8 @@
 **Author:** Muhammad Yaseen ([mindofyaseen](https://github.com/mindofyaseen))  
 **Target AWS Account:** `237657481511` (us-east-1)  
 **Hackathon Spend:** **$0.00** ($200 AWS credits fully preserved)  
-**GitHub Repository:** [https://github.com/mindofyaseen/aegis](https://github.com/mindofyaseen/aegis) (Open Source: Apache-2.0)  
+**Live Production URL:** [https://d3qd3kvh1ajueo.cloudfront.net](https://d3qd3kvh1ajueo.cloudfront.net) (AWS CloudFront CDN + S3 Serverless)  
+**GitHub Repository:** [https://github.com/mindofyaseen/AEGIS](https://github.com/mindofyaseen/AEGIS) (Open Source: Apache-2.0)  
 **Demonstration Video:** 3-Minute Demonstration Script in [docs/hackathon/DEMO_SCRIPT.md](DEMO_SCRIPT.md)  
 
 ---

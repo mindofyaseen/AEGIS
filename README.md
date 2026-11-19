@@ -5,10 +5,12 @@
 ![AEGIS Platform](https://img.shields.io/badge/AWS-Bedrock%20AgentCore-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Tests](https://img.shields.io/badge/Tests-65%2F65%20Pass-00ffaa?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-90%2F90%20Pass-00ffaa?style=for-the-badge)
 ![Zero-Mutation](https://img.shields.io/badge/Security-Zero%20Mutation-ff0055?style=for-the-badge)
 
 **Evidence-backed security investigations of AWS infrastructure governed by deterministic Context Completeness Gates and Amazon Bedrock Managed Agents.**
+
+🚀 **Live Production Deployment:** [https://d3qd3kvh1ajueo.cloudfront.net](https://d3qd3kvh1ajueo.cloudfront.net)  
 
 [Submission Overview](docs/hackathon/HACKATHON_SUBMISSION.md) • [System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md) • [15 Rules](AEGIS_AGENT_RULES.md) • [Adversarial Report](docs/hackathon/ADVERSARIAL_TEST_REPORT.md) • [Demo Script](docs/hackathon/DEMO_SCRIPT.md)
 
