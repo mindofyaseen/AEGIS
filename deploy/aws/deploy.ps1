@@ -1,4 +1,4 @@
-﻿# AEGIS Production Deployment Script (AWS S3 + CloudFront Serverless)
+# AEGIS Production Deployment Script (AWS S3 + CloudFront Serverless)
 # Preserves AWS spend within free tier eligibility.
 
 $ErrorActionPreference = "Stop"

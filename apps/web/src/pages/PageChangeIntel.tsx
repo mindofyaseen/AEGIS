@@ -171,30 +171,30 @@ resource "aws_s3_bucket_public_access_block" "customer_vault" {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-aegis-border pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.07] pb-4">
         <div>
-          <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
-            INFRASTRUCTURE AS CODE (IaC) CHANGE INTELLIGENCE
+          <h2 className="text-base font-semibold tracking-normal text-white">
+            Change intelligence & IaC gatekeeper
           </h2>
-          <p className="text-xs text-aegis-textSecondary">
+          <p className="text-xs text-zinc-400">
             Pre-deployment AST analysis for AWS CloudFormation, AWS CDK synthesized templates, and Terraform plans.
           </p>
         </div>
 
         {/* IaC Format Switcher */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-aegis-bgSecondary border border-aegis-border rounded p-1 font-mono text-xs">
+          <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] rounded-md p-0.5 text-xs">
             <button
               onClick={() => {
                 setTemplateType('cloudformation');
                 setInputCode(sampleTemplates.cfnVulnerable);
               }}
-              className={`px-3 py-1.5 rounded transition-all ${
+              className={`px-3 py-1.5 rounded transition-colors ${
                 templateType === 'cloudformation'
-                  ? 'bg-aegis-accentCyan text-black font-semibold'
-                  : 'text-aegis-textSecondary hover:text-aegis-textPrimary'
+                  ? 'bg-white/10 text-white font-medium shadow-sm'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               CloudFormation / CDK
@@ -204,23 +204,23 @@ resource "aws_s3_bucket_public_access_block" "customer_vault" {
                 setTemplateType('terraform');
                 setInputCode(sampleTemplates.tfVulnerable);
               }}
-              className={`px-3 py-1.5 rounded transition-all ${
+              className={`px-3 py-1.5 rounded transition-colors ${
                 templateType === 'terraform'
-                  ? 'bg-aegis-accentBlue text-black font-semibold'
-                  : 'text-aegis-textSecondary hover:text-aegis-textPrimary'
+                  ? 'bg-white/10 text-white font-medium shadow-sm'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              Terraform Plan AST
+              Terraform plan AST
             </button>
           </div>
 
           <button
             onClick={handleRunAnalysis}
             disabled={analyzing}
-            className="px-4 py-2 rounded bg-aegis-accentBlue hover:bg-blue-400 text-black font-semibold text-xs font-mono flex items-center gap-1.5 transition-all shadow-glow-cyan disabled:opacity-50"
+            className="px-3.5 py-1.5 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
           >
             <Play className={`w-3.5 h-3.5 ${analyzing ? 'animate-spin' : ''}`} />
-            Analyze Template AST
+            Analyze template AST
           </button>
         </div>
       </div>
@@ -229,9 +229,9 @@ resource "aws_s3_bucket_public_access_block" "customer_vault" {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Left: Code Editor Container */}
         <div className="aegis-card flex flex-col h-[600px] overflow-hidden">
-          <div className="p-3 border-b border-aegis-border bg-aegis-bgSecondary flex items-center justify-between text-xs font-mono">
-            <span className="text-aegis-textMuted flex items-center gap-1.5">
-              <FileCode className="w-4 h-4 text-aegis-accentCyan" />
+          <div className="px-4 py-2.5 border-b border-white/[0.07] bg-white/[0.02] flex items-center justify-between text-xs font-mono">
+            <span className="text-zinc-400 flex items-center gap-1.5">
+              <FileCode className="w-4 h-4 text-sky-400" />
               {templateType === 'cloudformation' ? 'cloudformation_template.json' : 'main.tf'}
             </span>
             <button
@@ -240,7 +240,7 @@ resource "aws_s3_bucket_public_access_block" "customer_vault" {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="text-[11px] text-aegis-textMuted hover:text-aegis-textPrimary flex items-center gap-1"
+              className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 transition-colors"
             >
               <Copy className="w-3 h-3" />
               {copied ? 'Copied' : 'Copy'}
@@ -250,7 +250,7 @@ resource "aws_s3_bucket_public_access_block" "customer_vault" {
           <textarea
             value={inputCode}
             onChange={(e) => setInputCode(e.target.value)}
-            className="flex-1 w-full p-4 bg-aegis-bg text-aegis-textPrimary font-mono text-xs outline-none resize-none leading-relaxed selection:bg-aegis-accentCyan selection:text-black"
+            className="flex-1 w-full p-4 bg-black/40 text-zinc-200 font-mono text-xs outline-none resize-none leading-relaxed selection:bg-sky-500/20"
             placeholder="Paste raw CloudFormation JSON/YAML or Terraform AST here..."
           />
         </div>
@@ -261,52 +261,52 @@ resource "aws_s3_bucket_public_access_block" "customer_vault" {
             <>
               {/* Verdict Banner */}
               <div
-                className={`p-5 rounded-lg border shadow-panel space-y-2 ${
+                className={`p-5 rounded-lg border space-y-2 ${
                   analysisResult.verdict === 'BLOCK'
-                    ? 'bg-red-950/20 border-aegis-critical/40'
-                    : 'bg-emerald-950/20 border-aegis-success/40'
+                    ? 'bg-white/[0.02] border-red-500/20 border-l-4 border-l-red-500'
+                    : 'bg-white/[0.02] border-emerald-500/20 border-l-4 border-l-emerald-500'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-mono font-bold uppercase px-2 py-0.5 rounded border flex items-center gap-1.5 ${
+                    className={`text-xs font-mono font-medium px-2 py-0.5 rounded border flex items-center gap-1.5 ${
                       analysisResult.verdict === 'BLOCK'
-                        ? 'bg-aegis-critical/20 text-aegis-critical border-aegis-critical/40'
-                        : 'bg-aegis-success/20 text-aegis-success border-aegis-success/40'
+                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                     }`}
                   >
                     {analysisResult.verdict === 'BLOCK' ? <ShieldAlert className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-                    VERDICT: {analysisResult.verdict}
+                    Verdict: {analysisResult.verdict}
                   </span>
-                  <span className="text-xs font-mono text-aegis-textMuted">CI/CD Exit Code: {analysisResult.verdict === 'BLOCK' ? '1 (FAIL)' : '0 (PASS)'}</span>
+                  <span className="text-xs font-mono text-zinc-500">CI/CD exit code: {analysisResult.verdict === 'BLOCK' ? '1 (FAIL)' : '0 (PASS)'}</span>
                 </div>
 
-                <p className="text-xs text-aegis-textPrimary leading-relaxed font-sans">
+                <p className="text-xs text-zinc-300 leading-relaxed font-sans">
                   {analysisResult.summary}
                 </p>
               </div>
 
               {/* Identified Findings List */}
               <div className="aegis-card p-4 space-y-3 h-[450px] overflow-y-auto">
-                <div className="text-xs font-bold font-mono uppercase tracking-wider text-aegis-textPrimary border-b border-aegis-border pb-2">
-                  Static AST Violations ({analysisResult.findings.length})
+                <div className="text-xs font-semibold text-white border-b border-white/[0.07] pb-2">
+                  Static AST violations ({analysisResult.findings.length})
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {analysisResult.findings.map((f, i) => (
                     <div
                       key={i}
-                      className="p-3.5 rounded border border-aegis-border bg-aegis-bgSecondary space-y-2"
+                      className="p-3.5 rounded-md border border-white/[0.06] bg-white/[0.02] space-y-2"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-mono text-aegis-accentBlue font-bold">{f.rule_id}</span>
-                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-aegis-critical/20 text-aegis-critical border border-aegis-critical/30">
+                        <span className="text-[11px] font-mono text-sky-400">{f.rule_id}</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
                           {f.severity}
                         </span>
                       </div>
-                      <h5 className="text-xs font-bold text-aegis-textPrimary">{f.title}</h5>
-                      <p className="text-xs text-aegis-textSecondary leading-relaxed">{f.description}</p>
-                      <div className="text-[11px] font-mono text-emerald-400 bg-emerald-950/20 p-2 rounded border border-emerald-600/30">
+                      <h5 className="text-xs font-medium text-white">{f.title}</h5>
+                      <p className="text-xs text-zinc-400 leading-relaxed">{f.description}</p>
+                      <div className="text-[11px] font-mono text-emerald-400 bg-emerald-950/20 p-2 rounded border border-emerald-500/20">
                         Fix: {f.remediation_recommendation}
                       </div>
                     </div>

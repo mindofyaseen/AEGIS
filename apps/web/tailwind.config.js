@@ -8,21 +8,23 @@ export default {
     extend: {
       colors: {
         aegis: {
-          bg: '#090D15',
-          bgSecondary: '#0E1520',
-          panel: '#121C29',
-          panelElevated: '#172335',
-          border: '#263549',
-          borderLight: '#354863',
-          textPrimary: '#EFF5FF',
-          textSecondary: '#91A2B9',
-          textMuted: '#5E7088',
-          accentBlue: '#4E9EFF',
-          accentCyan: '#53C8DE',
-          aiViolet: '#A98BFF',
-          success: '#36C995',
-          warning: '#EBAE58',
-          critical: '#F06E77'
+          bg: '#0A0C10',
+          bgSecondary: '#0F1218',
+          panel: '#141822',
+          panelHover: '#1A202E',
+          panelElevated: '#1A202E',
+          raised: '#202738',
+          border: 'rgba(255, 255, 255, 0.08)',
+          borderLight: 'rgba(255, 255, 255, 0.14)',
+          textPrimary: '#F1F4F9',
+          textSecondary: '#94A0B8',
+          textMuted: '#5E6B82',
+          accentBlue: '#0284C7',
+          accentCyan: '#0EA5E9',
+          aiViolet: '#818CF8',
+          success: '#10B981',
+          warning: '#F59E0B',
+          critical: '#EF4444'
         }
       },
       fontFamily: {
@@ -30,12 +32,9 @@ export default {
         mono: ['JetBrains Mono', 'Fira Code', 'monospace']
       },
       boxShadow: {
-        'panel': '0 4px 20px -2px rgba(0, 0, 0, 0.5)',
-        'panel-elevated': '0 10px 30px -5px rgba(0, 0, 0, 0.7)',
-        'glow-cyan': '0 0 20px -3px rgba(83, 200, 222, 0.25)',
-        'glow-critical': '0 0 20px -3px rgba(240, 110, 119, 0.3)',
-        'glow-ai': '0 0 20px -3px rgba(169, 139, 255, 0.25)',
-        'glow-success': '0 0 20px -3px rgba(54, 201, 149, 0.25)'
+        'panel': '0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3)',
+        'panel-elevated': '0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4)',
+        'subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.2)'
       }
     },
   },

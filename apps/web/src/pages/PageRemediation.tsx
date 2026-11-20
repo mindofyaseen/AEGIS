@@ -45,14 +45,14 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl">
       {/* Header */}
-      <div className="border-b border-aegis-border pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-white/[0.07] pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
-            {viewAudience === 'business' ? '1-CLICK SAFETY FIXES & PULL REQUESTS' : 'REMEDIATION PLANNING & AUTOMATED GIT PR WORKSPACE'}
+          <h2 className="text-base font-semibold tracking-normal text-white">
+            {viewAudience === 'business' ? '1-Click safety fixes' : 'Remediation workspace'}
           </h2>
-          <p className="text-xs text-aegis-textSecondary">
+          <p className="text-xs text-zinc-400">
             {viewAudience === 'business'
               ? 'Safe, tested 1-click code fixes that lock down your cloud with zero downtime to your customers.'
               : 'Rule 14 deterministic minimal diffs, tested rollback plans, human verification checklists, and GitHub PR synthesis.'}
@@ -60,25 +60,25 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({
         </div>
 
         {viewAudience === 'business' && (
-          <div className="px-3 py-1.5 rounded-lg bg-emerald-950/30 border border-emerald-600/40 text-xs text-emerald-300 font-sans flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-aegis-success" />
-            <span>Zero Customer Downtime Guarantee</span>
+          <div className="px-3 py-1 rounded-md bg-white/[0.02] border border-emerald-500/20 text-xs text-emerald-300 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Zero customer downtime guarantee</span>
           </div>
         )}
       </div>
 
       {patches.length === 0 ? (
         <div className="aegis-card p-12 text-center space-y-3">
-          <ShieldCheck className="w-12 h-12 text-aegis-success mx-auto" />
-          <h3 className="text-base font-bold text-aegis-textPrimary">No Active Remediation Plans Required</h3>
-          <p className="text-xs text-aegis-textSecondary max-w-md mx-auto">
+          <ShieldCheck className="w-8 h-8 text-emerald-400 mx-auto" />
+          <h3 className="text-sm font-semibold text-white">No active remediation plans required</h3>
+          <p className="text-xs text-zinc-400 max-w-md mx-auto">
             All evaluated infrastructure assets comply with automated security boundaries. Zero drift or perimeter exposures identified.
           </p>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Patch Selector Tabs */}
-          <div className="flex gap-2 border-b border-aegis-border pb-2 font-mono text-xs overflow-x-auto">
+          <div className="flex gap-2 border-b border-white/[0.07] pb-2 font-mono text-xs overflow-x-auto">
             {patches.map((p, idx) => (
               <button
                 key={idx}
@@ -86,13 +86,13 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({
                   setSelectedIndex(idx);
                   setGeneratedPr(null);
                 }}
-                className={`px-3 py-1.5 rounded transition-all flex items-center gap-2 whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-2 whitespace-nowrap ${
                   selectedIndex === idx
-                    ? 'bg-aegis-accentBlue text-black font-semibold'
-                    : 'text-aegis-textSecondary hover:text-aegis-textPrimary'
+                    ? 'bg-white/10 text-white font-medium border border-white/[0.08]'
+                    : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <Wrench className="w-3.5 h-3.5" />
+                <Wrench className="w-3.5 h-3.5 text-zinc-400" />
                 <span>{p.target_resource_id}</span>
               </button>
             ))}
@@ -104,10 +104,10 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({
               <div className="space-y-4">
                 {/* Unified Diff Viewer */}
                 <div className="aegis-card overflow-hidden">
-                  <div className="p-3 border-b border-aegis-border bg-aegis-bgSecondary flex items-center justify-between text-xs font-mono">
-                    <span className="text-aegis-textPrimary font-semibold flex items-center gap-1.5">
-                      <Code className="w-4 h-4 text-aegis-accentCyan" />
-                      Rule 14 Minimal Diff (.patch)
+                  <div className="px-4 py-2.5 border-b border-white/[0.07] bg-white/[0.02] flex items-center justify-between text-xs font-mono">
+                    <span className="text-zinc-200 font-medium flex items-center gap-1.5">
+                      <Code className="w-4 h-4 text-sky-400" />
+                      Rule 14 minimal diff (.patch)
                     </span>
                     <button
                       onClick={() => {
@@ -115,14 +115,14 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);
                       }}
-                      className="text-[11px] text-aegis-textMuted hover:text-aegis-textPrimary flex items-center gap-1"
+                      className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 transition-colors"
                     >
                       <Copy className="w-3 h-3" />
-                      {copied ? 'Copied' : 'Copy Patch'}
+                      {copied ? 'Copied' : 'Copy patch'}
                     </button>
                   </div>
 
-                  <pre className="p-4 bg-aegis-bg text-xs font-mono overflow-x-auto text-emerald-400 leading-relaxed selection:bg-emerald-500 selection:text-black">
+                  <pre className="p-4 bg-black/40 text-xs font-mono overflow-x-auto text-emerald-400 leading-relaxed">
                     {activePatch.terraform_patch || '# No direct Terraform diff generated for this resource type.'}
                   </pre>
                 </div>
@@ -130,11 +130,11 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({
                 {/* AWS CLI Dry-Run Command */}
                 {activePatch.cli_command_preview && (
                   <div className="aegis-card overflow-hidden">
-                    <div className="p-3 border-b border-aegis-border bg-aegis-bgSecondary flex items-center gap-1.5 text-xs font-mono text-aegis-textPrimary">
-                      <Terminal className="w-4 h-4 text-aegis-warning" />
-                      AWS CLI Manual Repair Command Preview
+                    <div className="px-4 py-2.5 border-b border-white/[0.07] bg-white/[0.02] flex items-center gap-1.5 text-xs font-mono text-zinc-200">
+                      <Terminal className="w-4 h-4 text-amber-400" />
+                      AWS CLI manual repair command preview
                     </div>
-                    <pre className="p-4 bg-aegis-bg text-xs font-mono text-aegis-warning overflow-x-auto leading-relaxed">
+                    <pre className="p-4 bg-black/40 text-xs font-mono text-amber-300 overflow-x-auto leading-relaxed">
                       {activePatch.cli_command_preview}
                     </pre>
                   </div>
@@ -146,24 +146,24 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({
                 {/* Rollback Plan & Human Checklist */}
                 <div className="aegis-card p-5 space-y-4">
                   <div>
-                    <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-aegis-textPrimary flex items-center gap-2 mb-1.5">
-                      <RotateCcw className="w-4 h-4 text-aegis-warning" />
-                      Safe Rollback Procedure (Zero Mutation Boundary)
+                    <h4 className="text-xs font-semibold text-white flex items-center gap-2 mb-1.5">
+                      <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                      Safe rollback procedure (Zero mutation boundary)
                     </h4>
-                    <p className="text-xs text-aegis-textSecondary leading-relaxed bg-aegis-bgSecondary p-3 rounded border border-aegis-border font-mono">
+                    <p className="text-xs text-zinc-300 leading-relaxed bg-white/[0.02] p-3 rounded-md border border-white/[0.06] font-mono">
                       {activePatch.rollback_plan}
                     </p>
                   </div>
 
                   <div>
-                    <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-aegis-textPrimary flex items-center gap-2 mb-2">
-                      <CheckSquare className="w-4 h-4 text-aegis-success" />
-                      Human Verification Checklist
+                    <h4 className="text-xs font-semibold text-white flex items-center gap-2 mb-2">
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+                      Human verification checklist
                     </h4>
-                    <div className="space-y-1.5 font-mono text-xs text-aegis-textSecondary">
+                    <div className="space-y-1.5 font-mono text-xs text-zinc-300">
                       {activePatch.verification_steps.map((step, sIdx) => (
-                        <div key={sIdx} className="flex items-start gap-2 bg-aegis-bgSecondary p-2 rounded border border-aegis-border">
-                          <span className="text-aegis-success">✓</span>
+                        <div key={sIdx} className="flex items-start gap-2 bg-white/[0.02] p-2 rounded-md border border-white/[0.06]">
+                          <span className="text-emerald-400">✓</span>
                           <span>{step}</span>
                         </div>
                       ))}
@@ -171,13 +171,13 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({
                   </div>
 
                   {/* Synthesize PR Action */}
-                  <div className="pt-2 border-t border-aegis-border">
+                  <div className="pt-2 border-t border-white/[0.07]">
                     <button
                       onClick={handleGeneratePr}
                       disabled={generatingPr}
-                      className="w-full py-2.5 px-4 rounded bg-aegis-accentCyan hover:bg-cyan-300 text-black font-semibold text-xs font-mono flex items-center justify-center gap-2 transition-all shadow-glow-cyan disabled:opacity-50"
+                      className="w-full py-2 px-3 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
                     >
-                      <GitPullRequest className={`w-4 h-4 ${generatingPr ? 'animate-spin' : ''}`} />
+                      <GitPullRequest className={`w-3.5 h-3.5 ${generatingPr ? 'animate-spin' : ''}`} />
                       {generatingPr ? 'Synthesizing Pull Request...' : 'Synthesize Ready-to-Merge GitHub PR'}
                     </button>
                   </div>
@@ -185,28 +185,28 @@ export const PageRemediation: React.FC<PageRemediationProps> = ({
 
                 {/* Synthesized GitHub PR Flyout */}
                 {generatedPr && (
-                  <div className="aegis-card p-5 space-y-3 border-l-4 border-l-aegis-accentCyan bg-cyan-950/10">
+                  <div className="aegis-card p-5 space-y-3 border-l-4 border-l-sky-500 bg-white/[0.02]">
                     <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-aegis-accentCyan font-bold">SYNTHESIZED PR ARTIFACT</span>
-                      <span className="text-aegis-textMuted">{generatedPr.pr_id}</span>
+                      <span className="text-sky-400 font-medium">Synthesized PR artifact</span>
+                      <span className="text-zinc-500">{generatedPr.pr_id}</span>
                     </div>
 
-                    <div className="space-y-1 font-mono text-xs">
+                    <div className="space-y-1.5 font-mono text-xs">
                       <div>
-                        <span className="text-aegis-textMuted text-[10px] block">BRANCH:</span>
-                        <span className="text-aegis-textPrimary bg-aegis-bg p-1 rounded border border-aegis-border block">{generatedPr.remediation_branch}</span>
+                        <span className="text-zinc-500 text-[10px] block">Branch:</span>
+                        <span className="text-zinc-200 bg-black/40 p-1.5 rounded border border-white/[0.06] block">{generatedPr.remediation_branch}</span>
                       </div>
                       <div>
-                        <span className="text-aegis-textMuted text-[10px] block">COMMIT MESSAGE:</span>
+                        <span className="text-zinc-500 text-[10px] block">Commit message:</span>
                         <span className="text-emerald-400 block">{generatedPr.commit_message}</span>
                       </div>
                       <div>
-                        <span className="text-aegis-textMuted text-[10px] block">PATCH FILE:</span>
-                        <span className="text-aegis-accentBlue block">{generatedPr.patch_filename}</span>
+                        <span className="text-zinc-500 text-[10px] block">Patch file:</span>
+                        <span className="text-sky-400 block">{generatedPr.patch_filename}</span>
                       </div>
                     </div>
 
-                    <div className="text-[11px] text-aegis-textSecondary leading-relaxed pt-2 border-t border-aegis-border">
+                    <div className="text-[11px] text-zinc-400 leading-relaxed pt-2 border-t border-white/[0.05]">
                       PR Markdown body generated with collapsible sections, verification steps, and one-click apply instructions for review by human engineering leads.
                     </div>
                   </div>

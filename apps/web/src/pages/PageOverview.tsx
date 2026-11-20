@@ -17,7 +17,8 @@ import {
   Cpu,
   Clock,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from 'lucide-react';
 import { InfrastructureScene3D } from '../components/InfrastructureScene3D';
 
@@ -61,68 +62,68 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
   const completenessPct = Math.round(report.context_completeness.completeness_score * 100);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl">
       {/* 1. Executive Verdict Command Hero */}
       <div
-        className={`p-6 rounded-lg border shadow-panel relative overflow-hidden transition-all ${
+        className={`p-6 rounded-lg bg-aegis-panel border transition-all ${
           isBlock
-            ? 'bg-gradient-to-r from-red-950/30 via-aegis-panel to-aegis-panel border-aegis-critical/40'
+            ? 'border-red-500/30 border-l-4 border-l-red-500'
             : isRefusal
-            ? 'bg-gradient-to-r from-amber-950/30 via-aegis-panel to-aegis-panel border-aegis-warning/40'
-            : 'bg-gradient-to-r from-emerald-950/30 via-aegis-panel to-aegis-panel border-aegis-success/40'
+            ? 'border-amber-500/30 border-l-4 border-l-amber-500'
+            : 'border-emerald-500/30 border-l-4 border-l-emerald-500'
         }`}
       >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-3xl">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <span
-                className={`text-xs font-mono font-bold uppercase px-2.5 py-1 rounded border flex items-center gap-1.5 ${
+                className={`text-xs font-mono font-medium px-2 py-0.5 rounded flex items-center gap-1.5 ${
                   isBlock
-                    ? 'bg-aegis-critical/20 text-aegis-critical border-aegis-critical/40'
+                    ? 'bg-red-500/10 text-red-400 border border-red-500/20'
                     : isRefusal
-                    ? 'bg-aegis-warning/20 text-aegis-warning border-aegis-warning/40'
-                    : 'bg-aegis-success/20 text-aegis-success border-aegis-success/40'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                 }`}
               >
                 {isBlock && <ShieldAlert className="w-3.5 h-3.5" />}
                 {isRefusal && <AlertOctagon className="w-3.5 h-3.5" />}
                 {isReady && <ShieldCheck className="w-3.5 h-3.5" />}
-                VERDICT: {report.verdict}
+                Verdict: {report.verdict}
               </span>
-              <span className="text-xs font-mono text-aegis-textMuted">
-                Investigation ID: <strong className="text-aegis-textPrimary">{report.investigation_id}</strong>
+              <span className="text-xs font-mono text-zinc-500">
+                Investigation ID: <strong className="text-zinc-300 font-normal">{report.investigation_id}</strong>
               </span>
             </div>
 
-            <h2 className="text-xl lg:text-2xl font-bold tracking-tight text-aegis-textPrimary">
+            <h2 className="text-lg lg:text-xl font-semibold tracking-tight text-white">
               {report.verdict_reason}
             </h2>
 
-            <p className="text-sm text-aegis-textSecondary leading-relaxed">
+            <p className="text-xs text-zinc-400 leading-relaxed max-w-2xl">
               {report.agent_reasoning_summary}
             </p>
           </div>
 
           {/* Context Completeness Progress Meter */}
-          <div className="shrink-0 bg-aegis-bgSecondary/90 border border-aegis-border rounded-lg p-4 min-w-[240px]">
+          <div className="shrink-0 bg-white/[0.02] border border-white/[0.08] rounded-lg p-4 min-w-[240px]">
             <div className="flex items-center justify-between text-xs font-mono mb-2">
-              <span className="text-aegis-textMuted">Telemetry Context:</span>
-              <span className={`font-bold ${completenessPct >= 85 ? 'text-aegis-success' : 'text-aegis-warning'}`}>
+              <span className="text-zinc-500">Telemetry context:</span>
+              <span className={`font-medium ${completenessPct >= 85 ? 'text-emerald-400' : 'text-amber-400'}`}>
                 {completenessPct}% {report.context_completeness.verdict_eligible ? '(Eligible)' : '(Refusal)'}
               </span>
             </div>
 
-            <div className="w-full bg-aegis-bg rounded-full h-2 overflow-hidden border border-aegis-border mb-2.5">
+            <div className="w-full bg-black/40 rounded-full h-1.5 overflow-hidden border border-white/[0.06] mb-2.5">
               <div
                 className={`h-full transition-all duration-500 ${
-                  completenessPct >= 85 ? 'bg-aegis-success' : 'bg-aegis-warning'
+                  completenessPct >= 85 ? 'bg-emerald-500' : 'bg-amber-500'
                 }`}
                 style={{ width: `${completenessPct}%` }}
               />
             </div>
 
-            <div className="text-[11px] font-mono text-aegis-textMuted leading-tight">
-              {report.context_completeness.successful_collectors} of {report.context_completeness.total_collectors_run} collectors verified.
+            <div className="text-[11px] font-mono text-zinc-500 leading-tight">
+              {report.context_completeness.successful_collectors} of {report.context_completeness.total_collectors_run} collectors verified
               {report.context_completeness.stale_snapshots_detected && ' (Stale >24h snapshot detected)'}
             </div>
           </div>
@@ -130,49 +131,50 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
       </div>
 
       {/* 1.5. Plain-English Business Risk & Financial Exposure Summary */}
-      <div className="p-5 rounded-lg border border-aegis-border bg-aegis-panelElevated shadow-panel space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-aegis-border pb-3">
+      <div className="p-5 rounded-lg border border-white/[0.08] bg-aegis-panel space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.07] pb-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-aegis-textPrimary font-mono uppercase tracking-wider">
-              💼 Executive Business & Financial Risk Assessment
+            <FileText className="w-4 h-4 text-sky-400" />
+            <span className="text-xs font-semibold text-white tracking-normal">
+              Executive risk & financial exposure assessment
             </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-aegis-accentCyan/20 text-aegis-accentCyan border border-aegis-accentCyan/30">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
               Plain English
             </span>
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-mono">
-            <span>Customer Data at Risk:</span>
-            <strong className={report.customer_data_at_risk ? 'text-aegis-critical' : 'text-aegis-success'}>
-              {report.customer_data_at_risk ? '⚠️ YES — EXPOSED' : '✓ SECURE'}
-            </strong>
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="text-zinc-500">Customer data status:</span>
+            <span className={`font-medium ${report.customer_data_at_risk ? 'text-red-400' : 'text-emerald-400'}`}>
+              {report.customer_data_at_risk ? 'At risk (Exposed)' : 'Protected'}
+            </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-3.5 rounded bg-aegis-bgSecondary border border-aegis-border space-y-1">
-            <span className="text-[10px] font-mono text-aegis-textMuted uppercase block">ESTIMATED FINANCIAL EXPOSURE</span>
-            <div className="text-base font-bold text-aegis-critical font-mono">
-              {report.estimated_financial_exposure || '$1,500,000+'}
+          <div className="p-3.5 rounded-md bg-white/[0.02] border border-white/[0.06] space-y-1">
+            <span className="text-[11px] text-zinc-500 block">Estimated financial liability</span>
+            <div className="text-base font-semibold text-red-400 font-mono tracking-tight">
+              {report.estimated_financial_exposure || '$1,420,000+'}
             </div>
-            <p className="text-[11px] text-aegis-textSecondary">
-              Average liability from customer data theft, regulatory fines (GDPR/HIPAA/SOC2), and system forensic downtime.
+            <p className="text-[11px] text-zinc-400 leading-normal">
+              Calculated penalty from GDPR/HIPAA mandates, breach response, and legal notification liabilities.
             </p>
           </div>
 
-          <div className="p-3.5 rounded bg-aegis-bgSecondary border border-aegis-border space-y-1 md:col-span-2">
-            <span className="text-[10px] font-mono text-aegis-textMuted uppercase block">WHAT THIS MEANS FOR YOUR COMPANY</span>
-            <p className="text-xs text-aegis-textPrimary leading-relaxed">
+          <div className="p-3.5 rounded-md bg-white/[0.02] border border-white/[0.06] space-y-1 md:col-span-2">
+            <span className="text-[11px] text-zinc-500 block">Business impact narrative</span>
+            <p className="text-xs text-zinc-300 leading-relaxed">
               {report.business_impact_summary || (
                 isBlock
-                  ? 'Your cloud infrastructure has an open public entrance combined with administrative master keys. Anyone on the internet can enter and access confidential customer financial data.'
-                  : 'Your cloud configuration is safely locked down with least-privilege permissions and zero open perimeter ports.'
+                  ? 'Your cloud infrastructure contains an open public entry point paired with administrative master keys. Any internet scanner can compromise this gateway and pivot into customer records.'
+                  : 'Your cloud environment is safely partitioned with least-privilege roles and zero open perimeter ports.'
               )}
             </p>
-            <div className="pt-2 text-[11px] font-mono text-aegis-accentCyan flex items-center gap-2">
-              <span>Solution:</span>
-              <span className="text-aegis-textSecondary">
-                Developers can apply AEGIS's 1-click configuration patch in seconds to eliminate this liability.
+            <div className="pt-2 text-[11px] text-zinc-400 flex items-center gap-2 border-t border-white/[0.05] mt-2">
+              <span className="text-sky-400 font-medium">Safe resolution:</span>
+              <span>
+                1-click minimal configuration patch available in Remediation Workspace with zero service downtime.
               </span>
             </div>
           </div>
@@ -182,46 +184,46 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
       {/* 2. Key High-Density Metric Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1 */}
-        <div className="aegis-card p-4 space-y-2">
-          <div className="flex items-center justify-between text-aegis-textMuted text-xs font-mono">
-            <span>Discovered Assets</span>
-            <Server className="w-4 h-4 text-aegis-accentBlue" />
+        <div className="aegis-card p-4 space-y-1.5">
+          <div className="flex items-center justify-between text-zinc-500 text-xs">
+            <span>Discovered assets</span>
+            <Server className="w-3.5 h-3.5 text-zinc-500" />
           </div>
-          <div className="text-2xl font-bold font-mono text-aegis-textPrimary">{report.total_resources}</div>
-          <div className="text-[11px] text-aegis-textSecondary">Active AWS VPC, Subnet, EC2, IAM, S3 & RDS nodes</div>
+          <div className="text-2xl font-semibold font-mono text-white tracking-tight">{report.total_resources}</div>
+          <div className="text-[11px] text-zinc-400">AWS VPC, Subnet, EC2, IAM, S3 & RDS nodes</div>
         </div>
 
         {/* Metric 2 */}
-        <div className="aegis-card p-4 space-y-2">
-          <div className="flex items-center justify-between text-aegis-textMuted text-xs font-mono">
-            <span>Security Findings</span>
-            <AlertOctagon className="w-4 h-4 text-aegis-critical" />
+        <div className="aegis-card p-4 space-y-1.5">
+          <div className="flex items-center justify-between text-zinc-500 text-xs">
+            <span>Security findings</span>
+            <AlertOctagon className="w-3.5 h-3.5 text-zinc-500" />
           </div>
-          <div className="text-2xl font-bold font-mono text-aegis-textPrimary flex items-baseline gap-2">
+          <div className="text-2xl font-semibold font-mono text-white tracking-tight flex items-baseline gap-2">
             <span>{report.total_findings}</span>
-            <span className="text-xs font-normal text-aegis-critical font-mono">({report.critical_findings} Critical)</span>
+            <span className="text-xs font-normal text-red-400 font-mono">({report.critical_findings} critical)</span>
           </div>
-          <div className="text-[11px] text-aegis-textSecondary">Evaluated deterministically against 15 rules</div>
+          <div className="text-[11px] text-zinc-400">Evaluated across 15 deterministic rules</div>
         </div>
 
         {/* Metric 3 */}
-        <div className="aegis-card p-4 space-y-2">
-          <div className="flex items-center justify-between text-aegis-textMuted text-xs font-mono">
-            <span>Attack Paths</span>
-            <GitBranch className="w-4 h-4 text-aegis-aiViolet" />
+        <div className="aegis-card p-4 space-y-1.5">
+          <div className="flex items-center justify-between text-zinc-500 text-xs">
+            <span>Attack paths</span>
+            <GitBranch className="w-3.5 h-3.5 text-zinc-500" />
           </div>
-          <div className="text-2xl font-bold font-mono text-aegis-textPrimary">{report.attack_paths.length}</div>
-          <div className="text-[11px] text-aegis-textSecondary">Multi-hop traversals to private data tier</div>
+          <div className="text-2xl font-semibold font-mono text-white tracking-tight">{report.attack_paths.length}</div>
+          <div className="text-[11px] text-zinc-400">Multi-hop traversals to customer data tier</div>
         </div>
 
         {/* Metric 4 */}
-        <div className="aegis-card p-4 space-y-2">
-          <div className="flex items-center justify-between text-aegis-textMuted text-xs font-mono">
-            <span>Remediation Plans</span>
-            <ShieldCheck className="w-4 h-4 text-aegis-success" />
+        <div className="aegis-card p-4 space-y-1.5">
+          <div className="flex items-center justify-between text-zinc-500 text-xs">
+            <span>Remediation patches</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-zinc-500" />
           </div>
-          <div className="text-2xl font-bold font-mono text-aegis-textPrimary">{report.remediation_patches.length}</div>
-          <div className="text-[11px] text-aegis-textSecondary">Rule 14 unified diffs & verification steps</div>
+          <div className="text-2xl font-semibold font-mono text-white tracking-tight">{report.remediation_patches.length}</div>
+          <div className="text-[11px] text-zinc-400">Rule 14 unified diffs & verification steps</div>
         </div>
       </div>
 
@@ -229,18 +231,18 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-aegis-textPrimary uppercase tracking-wider font-mono">
-              Live Infrastructure 3D Spatial Canvas
+            <h3 className="text-xs font-semibold text-white tracking-normal">
+              Infrastructure spatial topology
             </h3>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-aegis-accentCyan/10 text-aegis-accentCyan border border-aegis-accentCyan/20">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-zinc-400 border border-white/[0.06]">
               Interactive WebGL
             </span>
           </div>
           <button
             onClick={() => onNavigate('explorer')}
-            className="text-xs font-mono text-aegis-accentCyan hover:underline flex items-center gap-1"
+            className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors"
           >
-            Open Full Explorer <ArrowRight className="w-3.5 h-3.5" />
+            Open full explorer <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -258,25 +260,25 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Priority Investigation Queue */}
         <div className="aegis-card p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-aegis-border pb-3">
+          <div className="flex items-center justify-between border-b border-white/[0.07] pb-3">
             <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-aegis-critical" />
-              <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-aegis-textPrimary">
-                Priority Investigation Queue ({report.findings.length})
+              <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+              <h4 className="text-xs font-semibold text-white tracking-normal">
+                Priority investigation queue ({report.findings.length})
               </h4>
             </div>
             <button
               onClick={() => onNavigate('findings')}
-              className="text-[11px] font-mono text-aegis-accentCyan hover:underline"
+              className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
             >
-              View All Findings
+              View all findings
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {report.findings.length === 0 ? (
-              <div className="py-8 text-center text-xs text-aegis-textMuted font-mono">
-                ✓ No active critical security violations identified in this environment.
+              <div className="py-8 text-center text-xs text-zinc-500 font-mono">
+                No active security violations identified in this environment.
               </div>
             ) : (
               report.findings.map((f) => (
@@ -286,22 +288,22 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
                     onSelectFinding(f);
                     onNavigate('findings');
                   }}
-                  className="p-3 rounded border border-aegis-border bg-aegis-bgSecondary hover:border-aegis-borderLight hover:bg-aegis-panelElevated transition-all cursor-pointer space-y-1.5"
+                  className="p-3 rounded-md border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04] transition-all cursor-pointer space-y-1.5"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-aegis-textPrimary truncate">{f.title}</span>
+                    <span className="text-xs font-medium text-zinc-200 truncate">{f.title}</span>
                     <span
-                      className={`text-[9px] font-mono uppercase px-1.5 py-0.2 rounded border shrink-0 ${
+                      className={`text-[9px] font-mono px-1.5 py-0.5 rounded border shrink-0 ${
                         f.severity === 'CRITICAL'
-                          ? 'bg-aegis-critical/20 text-aegis-critical border-aegis-critical/30'
-                          : 'bg-aegis-warning/20 text-aegis-warning border-aegis-warning/30'
+                          ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                          : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                       }`}
                     >
                       {f.severity}
                     </span>
                   </div>
-                  <div className="text-[11px] font-mono text-aegis-accentBlue">Target: {f.affected_resource_id}</div>
-                  <p className="text-xs text-aegis-textSecondary line-clamp-2 leading-relaxed">{f.description}</p>
+                  <div className="text-[11px] font-mono text-zinc-500 truncate">Target: {f.affected_resource_id}</div>
+                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">{f.description}</p>
                 </div>
               ))
             )}
@@ -310,60 +312,60 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
 
         {/* Recent Activity & Investigation Traces */}
         <div className="aegis-card p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-aegis-border pb-3">
+          <div className="flex items-center justify-between border-b border-white/[0.07] pb-3">
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-aegis-accentCyan" />
-              <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-aegis-textPrimary">
-                Autonomous Agent Trace & Activity
+              <Clock className="w-3.5 h-3.5 text-zinc-400" />
+              <h4 className="text-xs font-semibold text-white tracking-normal">
+                Autonomous agent trace & activity
               </h4>
             </div>
             <button
               onClick={() => onNavigate('agent_console')}
-              className="text-[11px] font-mono text-aegis-accentCyan hover:underline"
+              className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
             >
-              Console Stream
+              Console stream
             </button>
           </div>
 
-          <div className="space-y-3 font-mono text-xs">
-            <div className="flex items-start gap-2.5 p-2.5 rounded bg-aegis-bgSecondary border border-aegis-border">
-              <span className="w-2 h-2 rounded-full bg-aegis-success shrink-0 mt-1.5" />
+          <div className="space-y-2.5 font-mono text-xs">
+            <div className="flex items-start gap-2.5 p-2.5 rounded-md bg-white/[0.02] border border-white/[0.06]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 mt-1.5" />
               <div className="space-y-0.5">
-                <div className="text-aegis-textPrimary font-semibold">Discovery Ingestion Completed</div>
-                <div className="text-[11px] text-aegis-textMuted">Discovered 12 AWS resources via read-only collectors</div>
+                <div className="text-zinc-200 font-medium">Discovery ingestion completed</div>
+                <div className="text-[11px] text-zinc-500">Discovered 14 AWS resources via read-only collectors</div>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded bg-aegis-bgSecondary border border-aegis-border">
-              <span className="w-2 h-2 rounded-full bg-aegis-accentCyan shrink-0 mt-1.5" />
+            <div className="flex items-start gap-2.5 p-2.5 rounded-md bg-white/[0.02] border border-white/[0.06]">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0 mt-1.5" />
               <div className="space-y-0.5">
-                <div className="text-aegis-textPrimary font-semibold">Context Completeness Gate Evaluated</div>
-                <div className="text-[11px] text-aegis-textMuted">
+                <div className="text-zinc-200 font-medium">Context completeness gate evaluated</div>
+                <div className="text-[11px] text-zinc-500">
                   Score: {completenessPct}% · {report.context_completeness.explanation}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded bg-aegis-bgSecondary border border-aegis-border">
+            <div className="flex items-start gap-2.5 p-2.5 rounded-md bg-white/[0.02] border border-white/[0.06]">
               <span
-                className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${
-                  isBlock ? 'bg-aegis-critical' : 'bg-aegis-success'
+                className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${
+                  isBlock ? 'bg-red-400' : 'bg-emerald-400'
                 }`}
               />
               <div className="space-y-0.5">
-                <div className="text-aegis-textPrimary font-semibold">Risk Verdict Arbitrated</div>
-                <div className="text-[11px] text-aegis-textMuted">
+                <div className="text-zinc-200 font-medium">Risk verdict arbitrated</div>
+                <div className="text-[11px] text-zinc-500">
                   Verdict issued as <strong>{report.verdict}</strong> across 15 deterministic governance rules
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded bg-aegis-bgSecondary border border-aegis-border">
-              <span className="w-2 h-2 rounded-full bg-aegis-aiViolet shrink-0 mt-1.5" />
+            <div className="flex items-start gap-2.5 p-2.5 rounded-md bg-white/[0.02] border border-white/[0.06]">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0 mt-1.5" />
               <div className="space-y-0.5">
-                <div className="text-aegis-textPrimary font-semibold">Rule 14 Remediation Plans Formulated</div>
-                <div className="text-[11px] text-aegis-textMuted">
-                  Synthesized {report.remediation_patches.length} minimal unified diffs with automated rollback plans
+                <div className="text-zinc-200 font-medium">Rule 14 remediation formulated</div>
+                <div className="text-[11px] text-zinc-500">
+                  Synthesized {report.remediation_patches.length} minimal diffs with rollback plans
                 </div>
               </div>
             </div>

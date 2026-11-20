@@ -4,59 +4,52 @@
 
 @layer base {
   body {
-    background-color: #090D15;
-    color: #EFF5FF;
+    background-color: #0A0C10;
+    color: #F1F4F9;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
   code, pre, .font-mono {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-feature-settings: 'tnum' on, 'zero' on;
   }
 }
 
-/* Custom Security Enterprise Panel Styles */
+/* Disciplined Enterprise Panel & Card Styles */
 .aegis-card {
-  background-color: #121C29;
-  border: 1px solid #263549;
+  background-color: #141822;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.5rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .aegis-card:hover {
-  border-color: #354863;
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 .aegis-card-elevated {
-  background-color: #172335;
-  border: 1px solid #354863;
+  background-color: #1A202E;
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 0.5rem;
 }
 
-/* Custom Scrollbars */
+/* Quiet Dark Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #090D15;
+  background: #0A0C10;
 }
 ::-webkit-scrollbar-thumb {
-  background: #263549;
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4E9EFF;
-}
-
-/* Custom Animations */
-@keyframes pulseSubtle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.02); }
-}
-
-.animate-pulse-subtle {
-  animation: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* Three.js Canvas container styling */

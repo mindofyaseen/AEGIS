@@ -59,14 +59,14 @@ export const PageComplianceAudit: React.FC<PageComplianceAuditProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-aegis-border pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.07] pb-4">
         <div>
-          <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
-            REGULATORY COMPLIANCE & AUDIT REPORTING
+          <h2 className="text-base font-semibold tracking-normal text-white">
+            Regulatory compliance & audit reporting
           </h2>
-          <p className="text-xs text-aegis-textSecondary">
+          <p className="text-xs text-zinc-400">
             Automated posture evaluation against CIS AWS Foundations Benchmark v3.0, SOC 2 Type II, and PCI-DSS v4.0.
           </p>
         </div>
@@ -74,41 +74,41 @@ export const PageComplianceAudit: React.FC<PageComplianceAuditProps> = ({
         <button
           onClick={handleDownloadReport}
           disabled={downloading || !report}
-          className="px-4 py-2 rounded bg-aegis-accentBlue hover:bg-blue-400 text-black font-semibold text-xs font-mono flex items-center gap-1.5 transition-all shadow-glow-cyan disabled:opacity-50"
+          className="px-3.5 py-1.5 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
         >
           <Download className="w-3.5 h-3.5" />
-          Download JSON Audit Report
+          Download JSON audit report
         </button>
       </div>
 
       {loading || !compReport ? (
-        <div className="aegis-card p-12 text-center text-xs font-mono text-aegis-textMuted">
+        <div className="aegis-card p-12 text-center text-xs font-mono text-zinc-500">
           Loading regulatory compliance scorecards...
         </div>
       ) : (
         <div className="space-y-6">
           {/* Overall Compliance Score Banner */}
-          <div className="aegis-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 border-l-4 border-l-aegis-accentCyan">
+          <div className="aegis-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 border-l-4 border-l-sky-500">
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-aegis-textMuted uppercase tracking-wider">
+              <span className="text-[11px] font-mono text-zinc-500 block">
                 COMPOSITE AUDIT SCORECARD
               </span>
-              <h3 className="text-xl font-bold text-aegis-textPrimary">
-                Overall Multi-Framework Compliance: {compReport.overall_compliance_pct}%
+              <h3 className="text-lg font-semibold text-white">
+                Multi-framework compliance: {compReport.overall_compliance_pct}%
               </h3>
-              <p className="text-xs text-aegis-textSecondary">
+              <p className="text-xs text-zinc-400">
                 Evaluated across {compReport.total_findings_mapped} discovered security findings and mapped to 4 active cybersecurity standards.
               </p>
             </div>
 
-            <div className="shrink-0 flex items-center gap-4 text-center font-mono">
-              <div className="bg-aegis-bgSecondary p-3 rounded border border-aegis-border min-w-[100px]">
-                <div className="text-2xl font-bold text-aegis-textPrimary">{compReport.overall_compliance_pct}%</div>
-                <div className="text-[10px] text-aegis-textMuted">Average Score</div>
+            <div className="shrink-0 flex items-center gap-3 text-center font-mono">
+              <div className="bg-white/[0.02] p-3 rounded-md border border-white/[0.06] min-w-[90px]">
+                <div className="text-xl font-semibold text-white tracking-tight">{compReport.overall_compliance_pct}%</div>
+                <div className="text-[10px] text-zinc-500">Average score</div>
               </div>
-              <div className="bg-aegis-bgSecondary p-3 rounded border border-aegis-border min-w-[100px]">
-                <div className="text-2xl font-bold text-aegis-accentCyan">{compReport.total_findings_mapped}</div>
-                <div className="text-[10px] text-aegis-textMuted">Mapped Findings</div>
+              <div className="bg-white/[0.02] p-3 rounded-md border border-white/[0.06] min-w-[90px]">
+                <div className="text-xl font-semibold text-sky-400 tracking-tight">{compReport.total_findings_mapped}</div>
+                <div className="text-[10px] text-zinc-500">Violations</div>
               </div>
             </div>
           </div>
@@ -120,51 +120,51 @@ export const PageComplianceAudit: React.FC<PageComplianceAuditProps> = ({
               return (
                 <div key={fwKey} className="aegis-card p-5 space-y-4 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between border-b border-aegis-border pb-3">
+                    <div className="flex items-center justify-between border-b border-white/[0.07] pb-3">
                       <div>
-                        <h4 className="text-xs font-bold text-aegis-textPrimary">{fw.framework_name}</h4>
-                        <span className="text-[10px] font-mono text-aegis-textMuted">Version: {fw.version}</span>
+                        <h4 className="text-xs font-semibold text-white">{fw.framework_name}</h4>
+                        <span className="text-[10px] font-mono text-zinc-500">Version: {fw.version}</span>
                       </div>
                       <span
-                        className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${
+                        className={`text-xs font-mono px-2 py-0.5 rounded border ${
                           fw.compliance_score_pct === 100
-                            ? 'bg-emerald-950/20 text-aegis-success border-emerald-600/30'
-                            : 'bg-aegis-warning/20 text-aegis-warning border-aegis-warning/30'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                         }`}
                       >
-                        {fw.compliance_score_pct}% Compliant
+                        {fw.compliance_score_pct}% compliant
                       </span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 my-3 text-center font-mono text-xs">
-                      <div className="p-2 rounded bg-aegis-bgSecondary border border-aegis-border">
-                        <div className="text-aegis-textPrimary font-bold">{fw.total_checks}</div>
-                        <div className="text-[10px] text-aegis-textMuted">Total</div>
+                      <div className="p-2 rounded bg-white/[0.02] border border-white/[0.06]">
+                        <div className="text-zinc-200 font-semibold">{fw.total_checks}</div>
+                        <div className="text-[10px] text-zinc-500">Total</div>
                       </div>
-                      <div className="p-2 rounded bg-aegis-bgSecondary border border-aegis-border">
-                        <div className="text-aegis-success font-bold">{fw.passed_checks}</div>
-                        <div className="text-[10px] text-aegis-textMuted">Passed</div>
+                      <div className="p-2 rounded bg-white/[0.02] border border-white/[0.06]">
+                        <div className="text-emerald-400 font-semibold">{fw.passed_checks}</div>
+                        <div className="text-[10px] text-zinc-500">Passed</div>
                       </div>
-                      <div className="p-2 rounded bg-aegis-bgSecondary border border-aegis-border">
-                        <div className="text-aegis-critical font-bold">{fw.failed_checks}</div>
-                        <div className="text-[10px] text-aegis-textMuted">Failed</div>
+                      <div className="p-2 rounded bg-white/[0.02] border border-white/[0.06]">
+                        <div className="text-red-400 font-semibold">{fw.failed_checks}</div>
+                        <div className="text-[10px] text-zinc-500">Failed</div>
                       </div>
                     </div>
 
                     {fw.violations.length > 0 && (
-                      <div className="space-y-1.5 pt-2 border-t border-aegis-border">
-                        <span className="text-[10px] font-mono text-aegis-textMuted uppercase block">
-                          Non-Compliant Controls ({fw.violations.length}):
+                      <div className="space-y-1.5 pt-2 border-t border-white/[0.07]">
+                        <span className="text-[11px] text-zinc-500 block">
+                          Non-compliant controls ({fw.violations.length}):
                         </span>
                         <div className="space-y-1">
                           {fw.violations.map((v, idx) => (
                             <div
                               key={idx}
-                              className="text-[11px] font-mono p-1.5 rounded bg-aegis-bgSecondary border border-aegis-border flex items-center justify-between"
+                              className="text-[11px] font-mono p-1.5 rounded bg-white/[0.02] border border-white/[0.06] flex items-center justify-between"
                             >
-                              <span className="text-aegis-accentCyan font-bold">{v.control_id}</span>
-                              <span className="text-aegis-textSecondary truncate max-w-[200px]">{v.control_title}</span>
-                              <span className="text-aegis-critical text-[10px] uppercase font-bold">{v.severity}</span>
+                              <span className="text-sky-400">{v.control_id}</span>
+                              <span className="text-zinc-400 truncate max-w-[200px]">{v.control_title}</span>
+                              <span className="text-red-400 text-[10px]">{v.severity}</span>
                             </div>
                           ))}
                         </div>
@@ -172,9 +172,9 @@ export const PageComplianceAudit: React.FC<PageComplianceAuditProps> = ({
                     )}
                   </div>
 
-                  <div className="text-[10px] font-mono text-aegis-textMuted pt-2 border-t border-aegis-border flex items-center justify-between">
-                    <span>Audit Status: Evaluated</span>
-                    <span>Deterministic Mapping</span>
+                  <div className="text-[10px] font-mono text-zinc-500 pt-2 border-t border-white/[0.07] flex items-center justify-between">
+                    <span>Audit status: Evaluated</span>
+                    <span>Deterministic mapping</span>
                   </div>
                 </div>
               );

@@ -88,26 +88,26 @@ export const PageAgentConsole: React.FC<PageAgentConsoleProps> = ({
     <div className="space-y-6">
       {/* Header */}
       <div className="border-b border-aegis-border pb-4">
-        <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
-          AMAZON BEDROCK AGENTCORE COMMAND CENTER
+        <h2 className="text-lg font-semibold tracking-tight text-white">
+          Agent command center
         </h2>
-        <p className="text-xs text-aegis-textSecondary">
-          Structured AI investigator console, tool invocation execution traces, and policy refusal audits.
+        <p className="text-xs text-aegis-textSecondary mt-0.5">
+          Structured Amazon Bedrock AgentCore execution traces, read-only tool invocation logs, and policy boundary audits.
         </p>
       </div>
 
       {/* Autonomous Investigation Pipeline Stages */}
       <div className="aegis-card p-4 space-y-3">
-        <div className="text-xs font-mono font-bold uppercase text-aegis-textMuted tracking-wider">
-          Autonomous Investigation Execution Pipeline
+        <div className="text-xs font-medium text-aegis-textMuted tracking-normal">
+          Autonomous investigation execution pipeline
         </div>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
           {stages.map((st, i) => (
             <div
               key={i}
-              className="p-2.5 rounded bg-aegis-bgSecondary border border-aegis-border flex items-center gap-2 text-xs font-mono"
+              className="p-2.5 rounded-md bg-white/[0.02] border border-white/[0.06] flex items-center gap-2 text-xs font-mono"
             >
-              <CheckCircle className="w-3.5 h-3.5 text-aegis-success shrink-0" />
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="truncate text-aegis-textPrimary">{st.name}</span>
             </div>
           ))}
@@ -118,31 +118,31 @@ export const PageAgentConsole: React.FC<PageAgentConsoleProps> = ({
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Real-time Console Log Stream (2 Cols on XL) */}
         <div className="xl:col-span-2 aegis-card flex flex-col h-[520px] overflow-hidden">
-          <div className="p-3 border-b border-aegis-border bg-aegis-bgSecondary flex items-center justify-between text-xs font-mono">
-            <span className="text-aegis-textPrimary font-semibold flex items-center gap-1.5">
-              <Terminal className="w-4 h-4 text-aegis-accentCyan" />
-              Bedrock AgentCore Trace Stream
+          <div className="p-3 border-b border-aegis-border bg-white/[0.01] flex items-center justify-between text-xs font-mono">
+            <span className="text-aegis-textPrimary font-medium flex items-center gap-2">
+              <Terminal className="w-3.5 h-3.5 text-sky-400" />
+              Agent trace stream
             </span>
-            <span className="text-aegis-success flex items-center gap-1 text-[11px]">
-              <span className="w-2 h-2 rounded-full bg-aegis-success animate-pulse" />
-              Harness Active
+            <span className="text-emerald-400 flex items-center gap-1.5 text-[11px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Harness active
             </span>
           </div>
 
           {/* Logs Terminal */}
-          <div className="flex-1 p-4 bg-aegis-bg font-mono text-xs overflow-y-auto space-y-2 selection:bg-aegis-accentCyan selection:text-black">
+          <div className="flex-1 p-4 bg-[#0A0C10] font-mono text-xs overflow-y-auto space-y-2 selection:bg-sky-500/30 selection:text-white">
             {consoleLogs.map((log, idx) => (
               <div key={idx} className="flex items-start gap-2.5 leading-relaxed">
                 <span className="text-aegis-textMuted select-none shrink-0">{log.time}</span>
                 <span
-                  className={`font-semibold shrink-0 uppercase text-[10px] px-1 rounded ${
+                  className={`font-semibold shrink-0 uppercase text-[10px] px-1.5 py-0.2 rounded ${
                     log.type === 'error'
-                      ? 'bg-aegis-critical/20 text-aegis-critical'
+                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                       : log.type === 'warn'
-                      ? 'bg-aegis-warning/20 text-aegis-warning'
+                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                       : log.type === 'success'
-                      ? 'bg-aegis-success/20 text-aegis-success'
-                      : 'bg-aegis-panel text-aegis-accentCyan'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-white/[0.04] text-sky-400 border border-white/[0.06]'
                   }`}
                 >
                   {log.type}
@@ -150,12 +150,12 @@ export const PageAgentConsole: React.FC<PageAgentConsoleProps> = ({
                 <span
                   className={
                     log.type === 'error'
-                      ? 'text-aegis-critical'
+                      ? 'text-rose-300'
                       : log.type === 'warn'
-                      ? 'text-aegis-warning'
+                      ? 'text-amber-300'
                       : log.type === 'success'
                       ? 'text-emerald-300'
-                      : 'text-aegis-textSecondary'
+                      : 'text-zinc-300'
                   }
                 >
                   {log.message}
@@ -165,8 +165,8 @@ export const PageAgentConsole: React.FC<PageAgentConsoleProps> = ({
           </div>
 
           {/* Interactive Directive Input */}
-          <div className="p-3 border-t border-aegis-border bg-aegis-bgSecondary flex items-center gap-2">
-            <span className="text-aegis-accentCyan font-mono text-xs select-none">aegis&gt;</span>
+          <div className="p-3 border-t border-aegis-border bg-white/[0.01] flex items-center gap-2">
+            <span className="text-sky-400 font-mono text-xs select-none">aegis&gt;</span>
             <input
               type="text"
               value={consoleInput}
@@ -178,7 +178,7 @@ export const PageAgentConsole: React.FC<PageAgentConsoleProps> = ({
             <button
               onClick={handleSimulatePrompt}
               disabled={running}
-              className="px-3 py-1.5 rounded bg-aegis-accentBlue hover:bg-blue-400 text-black font-semibold text-xs font-mono transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs font-mono transition-colors disabled:opacity-40 active:scale-[0.98]"
             >
               Send
             </button>
@@ -188,46 +188,46 @@ export const PageAgentConsole: React.FC<PageAgentConsoleProps> = ({
         {/* Harness Parameters & Allowed Action Groups */}
         <div className="aegis-card p-5 space-y-4 font-mono text-xs h-[520px] overflow-y-auto">
           <div className="border-b border-aegis-border pb-3">
-            <h4 className="text-xs font-bold text-aegis-textPrimary uppercase">Harness Configuration</h4>
+            <h4 className="text-xs font-semibold text-white">Harness configuration</h4>
             <span className="text-[10px] text-aegis-textMuted">integrations/bedrock/harness.py</span>
           </div>
 
           <div className="space-y-2">
-            <span className="text-[10px] text-aegis-textMuted uppercase block">ALLOWED READ-ONLY ACTION GROUPS</span>
+            <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block">Allowed read-only action groups</span>
             <div className="space-y-1 text-aegis-textSecondary text-[11px]">
-              <div className="p-1.5 rounded bg-aegis-bgSecondary border border-aegis-border flex items-center justify-between">
+              <div className="p-2 rounded-md bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
                 <span>inventory_infrastructure</span>
-                <span className="text-aegis-success text-[10px]">READ_ONLY</span>
+                <span className="text-emerald-400 text-[10px]">READ_ONLY</span>
               </div>
-              <div className="p-1.5 rounded bg-aegis-bgSecondary border border-aegis-border flex items-center justify-between">
+              <div className="p-2 rounded-md bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
                 <span>analyze_security_posture</span>
-                <span className="text-aegis-success text-[10px]">READ_ONLY</span>
+                <span className="text-emerald-400 text-[10px]">READ_ONLY</span>
               </div>
-              <div className="p-1.5 rounded bg-aegis-bgSecondary border border-aegis-border flex items-center justify-between">
+              <div className="p-2 rounded-md bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
                 <span>trace_attack_paths</span>
-                <span className="text-aegis-success text-[10px]">READ_ONLY</span>
+                <span className="text-emerald-400 text-[10px]">READ_ONLY</span>
               </div>
-              <div className="p-1.5 rounded bg-aegis-bgSecondary border border-aegis-border flex items-center justify-between">
+              <div className="p-2 rounded-md bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
                 <span>synthesize_remediation</span>
-                <span className="text-aegis-success text-[10px]">READ_ONLY</span>
+                <span className="text-emerald-400 text-[10px]">READ_ONLY</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-2 pt-2 border-t border-aegis-border">
-            <span className="text-[10px] text-aegis-critical uppercase block font-bold">STRICTLY PROHIBITED ACTIONS</span>
+            <span className="text-[10px] text-rose-400 uppercase tracking-wider block font-semibold">Strictly prohibited actions</span>
             <div className="space-y-1 text-[11px]">
-              <div className="p-1.5 rounded bg-red-950/20 border border-aegis-critical/30 text-aegis-critical flex items-center justify-between">
+              <div className="p-2 rounded-md bg-rose-500/[0.06] border border-rose-500/20 text-rose-300 flex items-center justify-between">
                 <span>terraform apply</span>
-                <span className="text-[10px] font-bold">DENIED</span>
+                <span className="text-[10px] font-semibold text-rose-400">DENIED</span>
               </div>
-              <div className="p-1.5 rounded bg-red-950/20 border border-aegis-critical/30 text-aegis-critical flex items-center justify-between">
+              <div className="p-2 rounded-md bg-rose-500/[0.06] border border-rose-500/20 text-rose-300 flex items-center justify-between">
                 <span>aws ec2 revoke-ingress</span>
-                <span className="text-[10px] font-bold">DENIED</span>
+                <span className="text-[10px] font-semibold text-rose-400">DENIED</span>
               </div>
-              <div className="p-1.5 rounded bg-red-950/20 border border-aegis-critical/30 text-aegis-critical flex items-center justify-between">
+              <div className="p-2 rounded-md bg-rose-500/[0.06] border border-rose-500/20 text-rose-300 flex items-center justify-between">
                 <span>execute_shell_command</span>
-                <span className="text-[10px] font-bold">DENIED</span>
+                <span className="text-[10px] font-semibold text-rose-400">DENIED</span>
               </div>
             </div>
           </div>

@@ -134,18 +134,18 @@ export const PageAdversarialLab: React.FC<PageAdversarialLabProps> = ({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-aegis-border pb-4">
         <div>
-          <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
-            ADVERSARIAL STRESS TESTING LABORATORY
+          <h2 className="text-lg font-semibold tracking-tight text-white">
+            Adversarial stress testing lab
           </h2>
-          <p className="text-xs text-aegis-textSecondary">
+          <p className="text-xs text-aegis-textSecondary mt-0.5">
             Automated verification of 14 adversarial prompt injection, tag tampering, and mutation bypass vectors.
           </p>
         </div>
 
         {/* Score Pill */}
-        <div className="flex items-center gap-2 bg-emerald-950/30 border border-emerald-600/40 px-3 py-1.5 rounded font-mono text-xs text-emerald-400">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>Boundary Gate Passed: <strong>{passedTests} / {totalTests} Passed</strong> (100%)</span>
+        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-md font-mono text-xs text-emerald-400">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>Boundary gate passed · <strong>{passedTests} of {totalTests} passed</strong> (100%)</span>
         </div>
       </div>
 
@@ -153,8 +153,8 @@ export const PageAdversarialLab: React.FC<PageAdversarialLabProps> = ({
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Test Matrix List (2 cols on XL) */}
         <div className="xl:col-span-2 aegis-card overflow-hidden flex flex-col">
-          <div className="p-3 border-b border-aegis-border bg-aegis-bgSecondary flex items-center justify-between text-xs font-mono text-aegis-textMuted">
-            <span>AUTOMATED ADVERSARIAL TEST SUITE ({filteredTests.length} TESTS)</span>
+          <div className="p-3 border-b border-aegis-border bg-white/[0.01] flex items-center justify-between text-xs font-mono text-aegis-textMuted">
+            <span>Automated adversarial test suite ({filteredTests.length} tests)</span>
             <div className="flex items-center gap-2">
               <Search className="w-3.5 h-3.5 text-aegis-textMuted" />
               <input
@@ -176,22 +176,22 @@ export const PageAdversarialLab: React.FC<PageAdversarialLabProps> = ({
                   onClick={() => setSelectedTestId(t.id)}
                   className={`p-4 cursor-pointer transition-all flex items-start justify-between gap-4 ${
                     isSelected
-                      ? 'bg-aegis-panelElevated border-l-4 border-l-aegis-accentCyan'
-                      : 'hover:bg-aegis-bgSecondary/60'
+                      ? 'bg-white/[0.03] border-l-2 border-l-sky-400'
+                      : 'hover:bg-white/[0.02]'
                   }`}
                 >
                   <div className="space-y-1 flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold font-mono text-aegis-accentCyan">{t.id}</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-950/20 text-emerald-400 border border-emerald-600/30">
+                      <span className="text-xs font-semibold font-mono text-sky-400">{t.id}</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                         {t.status}
                       </span>
                     </div>
-                    <h4 className="text-xs font-bold text-aegis-textPrimary truncate">{t.name}</h4>
+                    <h4 className="text-xs font-semibold text-white truncate">{t.name}</h4>
                     <p className="text-xs text-aegis-textSecondary line-clamp-1">Defense: {t.defense}</p>
                   </div>
 
-                  <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isSelected ? 'text-aegis-accentCyan translate-x-1' : 'text-aegis-textMuted'}`} />
+                  <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isSelected ? 'text-sky-400 translate-x-1' : 'text-aegis-textMuted'}`} />
                 </div>
               );
             })}
@@ -202,37 +202,37 @@ export const PageAdversarialLab: React.FC<PageAdversarialLabProps> = ({
         <div className="aegis-card p-5 space-y-4 h-[600px] overflow-y-auto">
           <div className="border-b border-aegis-border pb-3 space-y-1">
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-aegis-accentCyan font-bold">{selectedTestId}</span>
+              <span className="text-sky-400 font-semibold">{selectedTestId}</span>
               <span className="text-emerald-400">PASSED ✓</span>
             </div>
-            <h4 className="text-sm font-bold text-aegis-textPrimary pt-1">
+            <h4 className="text-sm font-semibold text-white pt-1">
               {tests.find((t) => t.id === selectedTestId)?.name}
             </h4>
           </div>
 
           <div className="space-y-3 font-mono text-xs">
             <div>
-              <span className="text-[10px] text-aegis-textMuted uppercase block mb-1">ADVERSARIAL ATTACK TECHNIQUE:</span>
-              <span className="text-aegis-critical font-bold">{selectedDetails.technique}</span>
+              <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block mb-1">Adversarial attack technique:</span>
+              <span className="text-rose-400 font-semibold">{selectedDetails.technique}</span>
             </div>
 
             <div>
-              <span className="text-[10px] text-aegis-textMuted uppercase block mb-1">INJECTED PROMPT / PAYLOAD VECTOR:</span>
-              <pre className="p-3 rounded bg-aegis-bg border border-aegis-border text-xs text-aegis-textSecondary overflow-x-auto leading-relaxed whitespace-pre-wrap">
+              <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block mb-1">Injected prompt / payload vector:</span>
+              <pre className="p-3 rounded-md bg-[#0A0C10] border border-white/[0.08] text-xs text-zinc-300 overflow-x-auto leading-relaxed whitespace-pre-wrap">
                 {selectedDetails.prompt}
               </pre>
             </div>
 
             <div>
-              <span className="text-[10px] text-aegis-textMuted uppercase block mb-1">EXPECTED AGENT BOUNDARY REACTION:</span>
-              <p className="font-sans text-xs text-aegis-textSecondary leading-relaxed bg-aegis-bgSecondary p-3 rounded border border-aegis-border">
+              <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block mb-1">Expected agent boundary reaction:</span>
+              <p className="font-sans text-xs text-aegis-textSecondary leading-relaxed bg-white/[0.02] p-3 rounded-md border border-white/[0.06]">
                 {selectedDetails.expected}
               </p>
             </div>
 
             <div>
-              <span className="text-[10px] text-aegis-textMuted uppercase block mb-1">TECHNICAL DEFENSE LAYER:</span>
-              <p className="font-sans text-xs text-emerald-400 leading-relaxed bg-emerald-950/20 p-3 rounded border border-emerald-600/30">
+              <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block mb-1">Technical defense layer:</span>
+              <p className="font-sans text-xs text-emerald-400 leading-relaxed bg-emerald-500/10 p-3 rounded-md border border-emerald-500/20">
                 {selectedDetails.defense}
               </p>
             </div>

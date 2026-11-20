@@ -139,45 +139,45 @@ export const PageGovernance: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-aegis-border pb-4">
         <div>
-          <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
-            AGENT GOVERNANCE & SECURITY BOUNDARIES
+          <h2 className="text-lg font-semibold tracking-tight text-white">
+            Governance & safety rules
           </h2>
-          <p className="text-xs text-aegis-textSecondary">
+          <p className="text-xs text-aegis-textSecondary mt-0.5">
             The 15 deterministic operating rules, 5-layer technical enforcement architecture, and Bedrock Guardrail specifications.
           </p>
         </div>
 
         {/* View Switcher */}
-        <div className="flex items-center gap-1 bg-aegis-bgSecondary border border-aegis-border rounded p-1 font-mono text-xs">
+        <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] rounded-md p-0.5 font-mono text-xs">
           <button
             onClick={() => setActiveTab('rules')}
             className={`px-3 py-1.5 rounded transition-all ${
               activeTab === 'rules'
-                ? 'bg-aegis-accentBlue text-black font-semibold'
-                : 'text-aegis-textSecondary hover:text-aegis-textPrimary'
+                ? 'bg-white/[0.08] text-white font-medium shadow-sm'
+                : 'text-aegis-textSecondary hover:text-white'
             }`}
           >
-            15 Agent Rules
+            15 Agent rules
           </button>
           <button
             onClick={() => setActiveTab('layers')}
             className={`px-3 py-1.5 rounded transition-all ${
               activeTab === 'layers'
-                ? 'bg-aegis-accentCyan text-black font-semibold'
-                : 'text-aegis-textSecondary hover:text-aegis-textPrimary'
+                ? 'bg-white/[0.08] text-white font-medium shadow-sm'
+                : 'text-aegis-textSecondary hover:text-white'
             }`}
           >
-            5 Enforcement Layers
+            5 Enforcement layers
           </button>
           <button
             onClick={() => setActiveTab('guardrails_spec')}
             className={`px-3 py-1.5 rounded transition-all ${
               activeTab === 'guardrails_spec'
-                ? 'bg-aegis-aiViolet text-black font-semibold'
-                : 'text-aegis-textSecondary hover:text-aegis-textPrimary'
+                ? 'bg-white/[0.08] text-white font-medium shadow-sm'
+                : 'text-aegis-textSecondary hover:text-white'
             }`}
           >
-            Bedrock Guardrails Spec
+            Bedrock Guardrails spec
           </button>
         </div>
       </div>
@@ -185,26 +185,26 @@ export const PageGovernance: React.FC = () => {
       {/* Tab 1: 15 Deterministic Rules */}
       {activeTab === 'rules' && (
         <div className="aegis-card overflow-hidden">
-          <div className="p-3 border-b border-aegis-border bg-aegis-bgSecondary flex items-center justify-between text-xs font-mono text-aegis-textMuted">
-            <span>DETERMINISTIC AGENT RULES (AEGIS_AGENT_RULES.MD)</span>
-            <span>STATUS: 15/15 ACTIVE & AUDITED</span>
+          <div className="p-3 border-b border-aegis-border bg-white/[0.01] flex items-center justify-between text-xs font-mono text-aegis-textMuted">
+            <span>Deterministic agent rules (AEGIS_AGENT_RULES.md)</span>
+            <span className="text-emerald-400">15 of 15 active & verified</span>
           </div>
 
           <div className="divide-y divide-aegis-border">
             {rulesList.map((r) => {
               const isExpanded = expandedRule === r.id;
               return (
-                <div key={r.id} className="p-4 hover:bg-aegis-bgSecondary/50 transition-colors">
+                <div key={r.id} className="p-4 hover:bg-white/[0.02] transition-colors">
                   <div
                     onClick={() => setExpandedRule(isExpanded ? null : r.id)}
                     className="flex items-center justify-between cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-mono font-bold text-aegis-accentCyan">{r.id}</span>
-                      <h4 className="text-xs font-bold text-aegis-textPrimary">{r.title}</h4>
+                      <span className="text-xs font-mono font-medium text-sky-400">{r.id}</span>
+                      <h4 className="text-xs font-medium text-white">{r.title}</h4>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/20 text-aegis-success border border-emerald-600/30">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                         {r.status}
                       </span>
                       {isExpanded ? <ChevronDown className="w-4 h-4 text-aegis-textMuted" /> : <ChevronRight className="w-4 h-4 text-aegis-textMuted" />}
@@ -214,12 +214,12 @@ export const PageGovernance: React.FC = () => {
                   {isExpanded && (
                     <div className="mt-3 pt-3 border-t border-aegis-border space-y-2 text-xs font-mono">
                       <div>
-                        <span className="text-aegis-textMuted text-[10px] uppercase block">Operational Limit / Mandate:</span>
+                        <span className="text-aegis-textMuted text-[10px] uppercase tracking-wider block">Operational limit / mandate:</span>
                         <p className="text-aegis-textSecondary font-sans leading-relaxed mt-0.5">{r.scope}</p>
                       </div>
                       <div>
-                        <span className="text-aegis-textMuted text-[10px] uppercase block">Technical Enforcement Layer:</span>
-                        <span className="text-aegis-accentBlue font-bold">{r.enforcement}</span>
+                        <span className="text-aegis-textMuted text-[10px] uppercase tracking-wider block">Technical enforcement layer:</span>
+                        <span className="text-sky-400 font-medium">{r.enforcement}</span>
                       </div>
                     </div>
                   )}
@@ -236,46 +236,46 @@ export const PageGovernance: React.FC = () => {
           {[
             {
               num: '1',
-              name: 'Scoped IAM Boundary',
+              name: 'Scoped IAM boundary',
               desc: 'Explicit read-only IAM policies prevent any Describe/Get permission from escalating to Put/Create/Delete.',
-              type: 'Cloud Layer'
+              type: 'Cloud layer'
             },
             {
               num: '2',
-              name: 'Action Group Allowlist',
+              name: 'Action group allowlist',
               desc: 'Bedrock harness exposes only 6 read-only discovery tools. Mutation tools do not exist in the agent schema.',
-              type: 'Harness Layer'
+              type: 'Harness layer'
             },
             {
               num: '3',
-              name: 'Context Completeness Gate',
+              name: 'Context completeness gate',
               desc: 'Mathematical threshold (score >= 0.85) fail-closed mechanism rejecting verdicts when telemetry is missing.',
-              type: 'Data Gate'
+              type: 'Data gate'
             },
             {
               num: '4',
-              name: 'LLM Quarantine Filter',
+              name: 'LLM quarantine filter',
               desc: 'Sanitizes untrusted IaC comments, tags, and logs to block prompt injection overrides.',
-              type: 'Model Gate'
+              type: 'Model gate'
             },
             {
               num: '5',
-              name: 'Rule 14 Human Review',
+              name: 'Rule 14 human review',
               desc: 'Automated remediation is strictly advisory (.patch files). Zero direct applying permitted.',
-              type: 'Safety Barrier'
+              type: 'Safety barrier'
             }
           ].map((layer) => (
             <div key={layer.num} className="aegis-card p-5 space-y-3 flex flex-col justify-between">
               <div>
-                <div className="w-8 h-8 rounded bg-aegis-bgSecondary border border-aegis-border flex items-center justify-center font-mono font-bold text-aegis-accentCyan text-sm mb-3">
+                <div className="w-8 h-8 rounded-md bg-white/[0.03] border border-white/[0.08] flex items-center justify-center font-mono font-semibold text-sky-400 text-xs mb-3">
                   0{layer.num}
                 </div>
-                <div className="text-[10px] font-mono text-aegis-accentBlue uppercase">{layer.type}</div>
-                <h4 className="text-xs font-bold text-aegis-textPrimary mt-1">{layer.name}</h4>
+                <div className="text-[10px] font-mono text-aegis-textMuted uppercase tracking-wider">{layer.type}</div>
+                <h4 className="text-xs font-semibold text-white mt-1">{layer.name}</h4>
                 <p className="text-xs text-aegis-textSecondary leading-relaxed mt-2">{layer.desc}</p>
               </div>
-              <div className="text-[10px] font-mono text-aegis-success pt-2 border-t border-aegis-border flex items-center gap-1">
-                ✓ Verified Active
+              <div className="text-[10px] font-mono text-emerald-400 pt-2 border-t border-aegis-border flex items-center gap-1">
+                ✓ Verified active
               </div>
             </div>
           ))}
@@ -285,10 +285,10 @@ export const PageGovernance: React.FC = () => {
       {/* Tab 3: Bedrock Native Guardrails Spec Viewer */}
       {activeTab === 'guardrails_spec' && (
         <div className="aegis-card overflow-hidden">
-          <div className="p-3 border-b border-aegis-border bg-aegis-bgSecondary flex items-center justify-between text-xs font-mono">
-            <span className="text-aegis-textPrimary font-semibold flex items-center gap-1.5">
-              <Code className="w-4 h-4 text-aegis-aiViolet" />
-              AWS Bedrock Guardrails Specification (boto3 create_guardrail)
+          <div className="p-3 border-b border-aegis-border bg-white/[0.01] flex items-center justify-between text-xs font-mono">
+            <span className="text-aegis-textPrimary font-medium flex items-center gap-1.5">
+              <Code className="w-3.5 h-3.5 text-sky-400" />
+              AWS Bedrock Guardrails specification (boto3 create_guardrail)
             </span>
             <button
               onClick={() => {
@@ -298,14 +298,14 @@ export const PageGovernance: React.FC = () => {
                   setTimeout(() => setCopied(false), 2000);
                 }
               }}
-              className="text-[11px] text-aegis-textMuted hover:text-aegis-textPrimary flex items-center gap-1"
+              className="px-2.5 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 text-[11px] font-mono flex items-center gap-1.5 border border-white/[0.06] transition-colors"
             >
               <Copy className="w-3 h-3" />
               {copied ? 'Copied' : 'Copy JSON'}
             </button>
           </div>
 
-          <pre className="p-4 bg-aegis-bg text-xs font-mono text-aegis-accentCyan overflow-x-auto leading-relaxed max-h-[500px]">
+          <pre className="p-4 bg-[#0A0C10] text-xs font-mono text-zinc-300 overflow-x-auto leading-relaxed max-h-[500px]">
             {guardrailSpec
               ? JSON.stringify(guardrailSpec.boto3_create_guardrail_payload, null, 2)
               : '// Loading Bedrock Guardrail JSON specification...'}

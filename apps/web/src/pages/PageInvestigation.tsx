@@ -39,17 +39,17 @@ export const PageInvestigation: React.FC<PageInvestigationProps> = ({ events }) 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-aegis-border pb-4">
         <div>
-          <h2 className="text-lg font-bold font-mono tracking-tight text-aegis-textPrimary">
-            INCIDENT INVESTIGATION & CLOUDTRAIL FORENSICS
+          <h2 className="text-lg font-semibold tracking-tight text-white">
+            Incident investigation & forensics
           </h2>
-          <p className="text-xs text-aegis-textSecondary">
-            Audit management events, IAM policy mutations, and suspicious ingress changes correlated with topology nodes.
+          <p className="text-xs text-aegis-textSecondary mt-0.5">
+            Audit CloudTrail management events, IAM policy mutations, and suspicious ingress changes correlated with topology nodes.
           </p>
         </div>
 
         {/* Filters */}
         <div className="flex items-center gap-3">
-          <div className="bg-aegis-bgSecondary border border-aegis-border rounded px-3 py-1.5 flex items-center gap-2">
+          <div className="bg-white/[0.02] border border-white/[0.08] rounded-md px-3 py-1.5 flex items-center gap-2">
             <Search className="w-3.5 h-3.5 text-aegis-textMuted" />
             <input
               type="text"
@@ -62,14 +62,14 @@ export const PageInvestigation: React.FC<PageInvestigationProps> = ({ events }) 
 
           <button
             onClick={() => setSuspiciousOnly(!suspiciousOnly)}
-            className={`px-3 py-1.5 rounded border text-xs font-mono transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-md border text-xs font-mono transition-all flex items-center gap-1.5 ${
               suspiciousOnly
-                ? 'bg-aegis-critical/20 text-aegis-critical border-aegis-critical/40 font-bold'
-                : 'bg-aegis-bgSecondary text-aegis-textSecondary border-aegis-border hover:text-aegis-textPrimary'
+                ? 'bg-rose-500/10 text-rose-300 border-rose-500/30 font-medium'
+                : 'bg-white/[0.02] text-aegis-textSecondary border-white/[0.08] hover:text-white'
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            Suspicious Only
+            Suspicious only
           </button>
         </div>
       </div>
@@ -78,9 +78,9 @@ export const PageInvestigation: React.FC<PageInvestigationProps> = ({ events }) 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Timeline List (2 cols on XL) */}
         <div className="xl:col-span-2 aegis-card overflow-hidden flex flex-col">
-          <div className="p-3 border-b border-aegis-border bg-aegis-bgSecondary text-xs font-mono text-aegis-textMuted flex items-center justify-between">
-            <span>CHRONOLOGICAL CLOUDTRAIL TIMELINE ({filteredEvents.length} EVENTS)</span>
-            <span>SOURCE: AWS CLOUDTRAIL US-EAST-1</span>
+          <div className="p-3 border-b border-aegis-border bg-white/[0.01] text-xs font-mono text-aegis-textMuted flex items-center justify-between">
+            <span>Chronological CloudTrail timeline ({filteredEvents.length} events)</span>
+            <span>Source: AWS CloudTrail (us-east-1)</span>
           </div>
 
           <div className="divide-y divide-aegis-border overflow-y-auto max-h-[600px]">
@@ -97,28 +97,28 @@ export const PageInvestigation: React.FC<PageInvestigationProps> = ({ events }) 
                     onClick={() => setSelectedEvent(ev)}
                     className={`p-4 cursor-pointer transition-all flex items-start justify-between gap-4 ${
                       isSelected
-                        ? 'bg-aegis-panelElevated border-l-4 border-l-aegis-accentCyan'
-                        : 'hover:bg-aegis-bgSecondary/60'
+                        ? 'bg-white/[0.03] border-l-2 border-l-sky-400'
+                        : 'hover:bg-white/[0.02]'
                     }`}
                   >
                     <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         {ev.is_suspicious ? (
-                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-aegis-critical/20 text-aegis-critical border border-aegis-critical/30 font-bold flex items-center gap-1">
+                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 font-medium flex items-center gap-1">
                             <AlertTriangle className="w-2.5 h-2.5" /> Suspicious
                           </span>
                         ) : (
-                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-aegis-panel text-aegis-textMuted border border-aegis-border">
+                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-white/[0.03] text-aegis-textMuted border border-white/[0.06]">
                             Management
                           </span>
                         )}
-                        <span className="text-xs font-bold font-mono text-aegis-textPrimary">{ev.event_name}</span>
+                        <span className="text-xs font-semibold font-mono text-white">{ev.event_name}</span>
                         <span className="text-[11px] font-mono text-aegis-textMuted truncate">· {ev.event_source}</span>
                       </div>
 
                       <div className="flex items-center gap-3 text-xs text-aegis-textSecondary">
-                        <span>Actor: <strong className="font-mono text-aegis-accentBlue">{ev.actor_username}</strong></span>
-                        <span>IP: <strong className="font-mono text-aegis-textMuted">{ev.source_ip}</strong></span>
+                        <span>Actor: <strong className="font-mono text-sky-400">{ev.actor_username}</strong></span>
+                        <span>IP: <strong className="font-mono text-zinc-400">{ev.source_ip}</strong></span>
                         <span>Time: <span className="font-mono text-aegis-textMuted">{new Date(ev.event_time).toLocaleTimeString()}</span></span>
                       </div>
 
@@ -127,7 +127,7 @@ export const PageInvestigation: React.FC<PageInvestigationProps> = ({ events }) 
                       </p>
                     </div>
 
-                    <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isSelected ? 'text-aegis-accentCyan translate-x-1' : 'text-aegis-textMuted'}`} />
+                    <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isSelected ? 'text-sky-400 translate-x-1' : 'text-aegis-textMuted'}`} />
                   </div>
                 );
               })
@@ -140,36 +140,36 @@ export const PageInvestigation: React.FC<PageInvestigationProps> = ({ events }) 
           {selectedEvent ? (
             <div className="space-y-4 font-mono text-xs">
               <div className="border-b border-aegis-border pb-3 space-y-1">
-                <span className="text-[10px] text-aegis-textMuted uppercase block">CLOUDTRAIL EVENT ID</span>
-                <span className="text-aegis-accentCyan text-xs truncate block">{selectedEvent.event_id}</span>
-                <h4 className="text-sm font-bold text-aegis-textPrimary pt-1">{selectedEvent.event_name}</h4>
+                <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block">CloudTrail event ID</span>
+                <span className="text-sky-400 text-xs truncate block">{selectedEvent.event_id}</span>
+                <h4 className="text-sm font-semibold text-white pt-1">{selectedEvent.event_name}</h4>
               </div>
 
               <div>
-                <span className="text-[10px] text-aegis-textMuted uppercase block">EVENT TIMESTAMP</span>
-                <span className="text-aegis-textPrimary">{selectedEvent.event_time}</span>
+                <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block">Event timestamp</span>
+                <span className="text-zinc-300">{selectedEvent.event_time}</span>
               </div>
 
               <div>
-                <span className="text-[10px] text-aegis-textMuted uppercase block">PRINCIPAL ACTOR ARN</span>
-                <span className="text-aegis-aiViolet break-all text-[11px]">{selectedEvent.actor_arn}</span>
+                <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block">Principal actor ARN</span>
+                <span className="text-zinc-300 break-all text-[11px]">{selectedEvent.actor_arn}</span>
               </div>
 
               <div>
-                <span className="text-[10px] text-aegis-textMuted uppercase block">SOURCE IP ADDRESS</span>
-                <span className="text-aegis-textPrimary">{selectedEvent.source_ip}</span>
+                <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block">Source IP address</span>
+                <span className="text-zinc-300">{selectedEvent.source_ip}</span>
               </div>
 
               {selectedEvent.target_resource_id && (
                 <div>
-                  <span className="text-[10px] text-aegis-textMuted uppercase block">MUTATED TARGET RESOURCE</span>
-                  <span className="text-aegis-accentBlue font-bold">{selectedEvent.target_resource_id}</span>
+                  <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block">Mutated target resource</span>
+                  <span className="text-sky-400 font-semibold">{selectedEvent.target_resource_id}</span>
                 </div>
               )}
 
               <div className="pt-2 border-t border-aegis-border space-y-1">
-                <span className="text-[10px] text-aegis-textMuted uppercase block">SECURITY SIGNIFICANCE</span>
-                <p className="font-sans text-xs text-aegis-textSecondary leading-relaxed bg-aegis-bgSecondary p-3 rounded border border-aegis-border">
+                <span className="text-[10px] text-aegis-textMuted uppercase tracking-wider block">Security significance</span>
+                <p className="font-sans text-xs text-aegis-textSecondary leading-relaxed bg-white/[0.02] p-3 rounded-md border border-white/[0.06]">
                   {selectedEvent.security_significance}
                 </p>
               </div>
