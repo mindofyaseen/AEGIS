@@ -117,16 +117,31 @@ npm.cmd run build
 cd ../..
 ```
 
-### 3. Run Test Suite (65 Tests)
+### 3. Run Complete Test Battery (90 Tests)
 ```powershell
 python -m pytest tests/ -v
+# Or double-click: scripts/run_tests.bat
 ```
 
-### 4. Launch Executive Dashboard
+### 4. Launch Local Platform & Console
 ```powershell
-python -m uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload
+# Option A: One-click launcher
+.\scripts\run_dev.ps1
+# (Or double-click scripts\run_dev.bat on Windows)
+
+# Option B: Direct Python command
+python backend/api/main.py
+# (Or: python -m uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload)
 ```
-Navigate to [http://localhost:8000](http://localhost:8000) to access the live dashboard.
+Navigate to [http://localhost:8000](http://localhost:8000) to access the live web console.
+
+### 5. Run CI/CD Gatekeeper CLI
+```powershell
+# Scan sample infrastructure topology
+python cli/aegis_cli.py --topology fixtures/aws_topologies/ecommerce_vpc.json --fail-on-block
+
+# Or double-click: scripts/run_cli.bat
+```
 
 ---
 

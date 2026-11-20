@@ -1,38 +1,77 @@
-# AEGIS — Local Development Guide
+# AEGIS — Local Development & Evaluator Guide
 
 ## Prerequisites
-- Python 3.12+ (Installed at `C:\Users\mindo\AppData\Local\Programs\Python\Python312\python.exe`)
-- Node.js v20+ / v26+ (Installed at `C:\Program Files\nodejs\node.exe`)
-- AWS CLI v2 with authenticated profile (Verified in `us-east-1`)
-- Git
+- **Python 3.12+**
+- **Node.js 20+** & npm (for building the web UI)
+- **AWS CLI v2** (optional; the synthetic discovery engine runs completely offline with zero AWS charges)
+- **Git**
 
-## Environment Setup
+---
 
-### 1. Python Virtual Environment
-```powershell
-cd "c:\Users\mindo\Documents\Builder Center\aegis"
-& "C:\Users\mindo\AppData\Local\Programs\Python\Python312\python.exe" -m venv venv
+## Quickstart (Zero Configuration)
+
+### 1. Automated Launch (Windows)
+Double-click:
+- `scripts\run_dev.bat` to launch the local API server and web console on `http://localhost:8000`.
+- `scripts\run_tests.bat` to run the complete 90-test automated verification suite.
+- `scripts\run_cli.bat` to execute the CI/CD Gatekeeper CLI on a sample vulnerable infrastructure plan.
+
+### 2. Manual Terminal Setup
+
+#### A. Python Environment
+```bash
+# Clone the repository
+git clone https://github.com/mindofyaseen/AEGIS.git
+cd AEGIS
+
+# Create and activate virtual environment
+python -m venv venv
+
+# Windows PowerShell:
 .\venv\Scripts\Activate.ps1
+# Linux / macOS:
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Running Local Unit Tests
-```powershell
-pytest tests/unit/ -v
+#### B. Frontend Build (Optional — pre-built bundle is already included)
+```bash
+cd apps/web
+npm install
+npm run build
+cd ../..
 ```
 
-### 3. Running Adversarial Stress Tests
-```powershell
-pytest tests/adversarial/ -v
+#### C. Run the Complete Test Battery
+```bash
+python -m pytest tests/ -v
 ```
 
-### 4. Running the Local FastAPI Engine
-```powershell
-uvicorn backend.api.main:app --reload --port 8000
+#### D. Start the Unified Server
+```bash
+python backend/api/main.py
+# Server starts on http://localhost:8000
+```
+Visit `http://localhost:8000` in your browser. The FastAPI server automatically serves the compiled React web console and all API endpoints.
+
+---
+
+## Running CI/CD Gatekeeper CLI
+
+Evaluate Infrastructure as Code (IaC) or live AWS topology before deployment:
+```bash
+# Evaluate sample topology with gatekeeper exit code
+python cli/aegis_cli.py --topology fixtures/aws_topologies/ecommerce_vpc.json --fail-on-block
+
+# Evaluate a Terraform plan JSON
+python cli/aegis_cli.py --terraform-plan fixtures/terraform_plans/vulnerable_bastion_plan.json --fail-on-block
 ```
 
-## Safety Guidelines for Solo Development
-- Never commit AWS access keys, session tokens, or real client customer infrastructure dumps.
-- Always run adversarial tests against synthetic fixtures first.
-- Only run live read-only AWS discovery when explicitly requested.
-- Maintain zero billable AWS resources during local development.
+---
+
+## Safety & Governance Guidelines
+- **Zero Billable AWS Spend:** AEGIS operates by default in synthetic mode with zero cloud charges.
+- **Strict Read-Only Operations:** When pointed at a live AWS account, all discovery actions are strictly read-only (`Describe*`, `Get*`, `List*`). Zero mutation commands exist in the agent tool inventory.
+- **Credential Protection:** Secrets and AWS keys are scrubbed and quarantined; never commit `.env` or credential files.

@@ -297,7 +297,7 @@ export const PageOverview: React.FC<PageOverviewProps> = ({
                         f.severity === 'CRITICAL'
                           ? 'bg-red-500/10 text-red-400 border-red-500/20'
                           : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                      }`}
+                        }`}
                     >
                       {f.severity}
                     </span>

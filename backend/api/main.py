@@ -5,8 +5,15 @@ and adversarial verification APIs.
 Enforces RULE-02 (Read-Only) and RULE-03 (Zero Mutation).
 """
 
+import sys
 import json
 from pathlib import Path
+
+# Ensure project root is in sys.path when invoked directly
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -408,3 +415,9 @@ if DIST_DIR.exists():
         if target.is_file():
             return FileResponse(target)
         return FileResponse(DIST_DIR / "index.html")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    print("Starting AEGIS Security & DevSecOps Platform on http://localhost:8000 ...")
+    uvicorn.run("backend.api.main:app", host="0.0.0.0", port=8000, reload=True)

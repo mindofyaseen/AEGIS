@@ -1,33 +1,34 @@
-# AEGIS — Next Steps & Final Submission Preparation
+# AEGIS — Final Submission Roadmap & Status Checklist
 
-## 1. Local Testing & Verification (Completed)
-- [x] All 65 automated tests passing (`python -m pytest tests/ -v`).
-- [x] Frontend successfully built (`npm.cmd run build` $\to$ `apps/web/dist`).
-- [x] FastAPI static mount tested and serving SPA on `/`.
-
----
-
-## 2. Running AEGIS Locally
-To run the full platform locally:
-```powershell
-cd "c:\Users\mindo\Documents\Builder Center\aegis"
-python -m uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload
-```
-Then open your browser to [http://localhost:8000](http://localhost:8000).
+## 1. Automated Verification & Testing (Completed ✓)
+- [x] All 90 automated tests passing (`python -m pytest tests/ -v`).
+- [x] Unslop & UI-UX Pro Max complete frontend redesign compiled (`apps/web/dist`).
+- [x] CI/CD Gatekeeper CLI operational with deterministic exit codes (`cli/aegis_cli.py`).
+- [x] FastAPI static mount tested and serving SPA on `/` and `/api/*`.
 
 ---
 
-## 3. Hackathon Submission Checklist (Target: Dec 2, 2026)
-1. **GitHub Repository Setup:**
-   - Commit all current code and documentation to Git.
-   - Create public GitHub repository `mindofyaseen/aegis` and push code.
-2. **Record 3-Minute Demonstration Video:**
-   - Follow the detailed script in `docs/hackathon/DEMO_SCRIPT.md`.
-   - Walk through the three scenarios on the live dashboard (`BLOCK`, `INSUFFICIENT_CONTEXT`, `READY_FOR_HUMAN_REVIEW`).
-   - Highlight the interactive topology graph, attack path, and Rule 14 remediation diffs.
-   - Show the 28 passing tests in the terminal.
-   - Upload video to YouTube / Vimeo (set to Public or Unlisted).
-3. **Submit on AWS Builder Center:**
-   - Challenge Track: *"Agents, your rules: Bedrock Managed Agents build"*.
-   - Copy the submission writeup from `docs/hackathon/HACKATHON_SUBMISSION.md`.
-   - Include GitHub repository link and public video demo link.
+## 2. Live Cloud Deployment & GitHub Sync (Completed ✓)
+- [x] **Public GitHub Repository:** [https://github.com/mindofyaseen/AEGIS](https://github.com/mindofyaseen/AEGIS) (`main` & `master` branches synced).
+- [x] **Live CloudFront Production Web URL:** [https://d3qd3kvh1ajueo.cloudfront.net](https://d3qd3kvh1ajueo.cloudfront.net)
+- [x] **AWS S3 Hosting Bucket:** `s3://aegis-security-platform-237657481511-us-east-1`
+- [x] **CloudFront Distribution ID:** `E79KRZGHH2T8F`
+- [x] **AWS Spend Preserved:** **$0.00** spent ($200 credits 100% intact).
+
+---
+
+## 3. Final Submission Checklist (AWS Builder Center Hackathon)
+- [x] **Core Defined Job:** Defined clearly in `README.md` and `HACKATHON_SUBMISSION.md`.
+- [x] **Written Plain-Language Rule Set:** Documented in `AEGIS_AGENT_RULES.md` (15 deterministic rules).
+- [x] **Enforcement Architecture:** 5-layer layered defense (IAM, Action Group whitelists, Context Completeness Gate, Pre-processor quarantine, Rule 14 human sign-off).
+- [x] **Stress Test Battery:** 14 automated adversarial tests in `tests/adversarial/test_adversarial_suite.py` with 100% pass rate.
+- [ ] **Demonstration Video (3 Minutes):**
+  - Follow the structured script in `docs/hackathon/DEMO_SCRIPT.md`.
+  - Walk through the live CloudFront UI or local console (`http://localhost:8000`).
+  - Demonstrate the three legal verdicts (`BLOCK`, `INSUFFICIENT_CONTEXT`, `READY_FOR_HUMAN_REVIEW`).
+  - Show the 3D WebGL infrastructure topology and lateral movement attack paths.
+  - Show terminal test run (`python -m pytest tests/` -> 90 passed).
+- [ ] **Submit Project on AWS Builder Center:**
+  - Hackathon: *Agents, your rules: Bedrock Managed Agents build*
+  - Submit writeup using `docs/hackathon/HACKATHON_SUBMISSION.md`.
+  - Attach GitHub repository link and demo video link.

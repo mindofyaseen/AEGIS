@@ -11,6 +11,11 @@ import argparse
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+# Ensure project root is in sys.path when invoked directly
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from backend.orchestration.investigator import AegisInvestigator
 from backend.models import InvestigationReport, Verdict, Severity
 from services.change_analysis.cloudformation_parser import CloudFormationAnalyzer
