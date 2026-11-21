@@ -176,8 +176,20 @@ class AegisCLI:
             required=False,
             help="Write report to specified output file",
         )
+        parser.add_argument(
+            "--preflight",
+            action="store_true",
+            help="Execute customer in-account deployment preflight audit",
+        )
 
         args = parser.parse_args(argv)
+
+        if args.preflight:
+            from cli.installer import AegisCustomerInstaller
+            installer = AegisCustomerInstaller()
+            preflight = installer.run_preflight_checks()
+            installer.print_preflight_summary(preflight)
+            return 0 if preflight["passed"] else 1
 
         # 1. Resolve Topology
         if args.topology:

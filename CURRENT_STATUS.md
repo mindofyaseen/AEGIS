@@ -1,12 +1,12 @@
 # AEGIS — Current Development Status
-## Enterprise Cloud Security Operations & DevSecOps Platform
+## Customer-Deployable Autonomous DevSecOps Engineer for AWS
 
-**Project:** AEGIS (AI-Native Autonomous Cloud Security & DevSecOps Platform)  
+**Project:** AEGIS (In-Account Autonomous AI DevSecOps Engineer)  
 **Hackathon Track:** Agents, your rules: Bedrock Managed Agents build (AWS Builder Center)  
 **Author:** Muhammad Yaseen ([mindofyaseen](https://github.com/mindofyaseen))  
 **Target AWS Account:** `237657481511` (us-east-1)  
 **Current Spend:** **$0.00** (Preserved, $200 credits intact)  
-**Last Updated:** November 20, 2026  
+**Last Updated:** November 21, 2026  
 **Git Commit:** Clean `main` / `master` working tree ([GitHub Repository](https://github.com/mindofyaseen/AEGIS))  
 **Live Production URL:** [https://d3qd3kvh1ajueo.cloudfront.net](https://d3qd3kvh1ajueo.cloudfront.net)  
 **AWS S3 Origin:** `s3://aegis-security-platform-237657481511-us-east-1`  
@@ -16,6 +16,12 @@
 
 ## 1. What Is Working & Production-Ready
 
+- **Customer-Deployable In-Account Architecture:**
+  - **Single Native CloudFormation Stack (`deploy/aws/aegis_customer_deployable_stack.yml`):** Deploys AEGIS directly into any customer AWS account via 1-Click Console Launch or AWS CLI in ~2 minutes.
+  - **Zero-Modification Guarantee:** Provisions only 5 isolated serverless support resources under the `aegis-*` prefix (`AegisScopedInspectorRole`, `AegisCustomerWebBucket`, `AegisConsoleCDN`, `AegisServerlessBackendLambda`, `AegisLambdaFunctionUrl`). Never touches or alters existing customer EC2, VPC, RDS, or application workloads.
+  - **Serverless $0 Idle Cost:** Ephemeral Lambda execution (< 25ms in-memory graph modeling) and standard S3/CloudFront tiers keep customer idle spend at **$0.00 – $0.50/month**.
+  - **Automated Preflight Audit Engine (`cli/installer.py`):** Runs automated verification of caller identity, CloudFormation template schemas, and Amazon Bedrock in-region reachability before any provisioning occurs (`python cli/aegis_cli.py --preflight`).
+  - **Complete 13-Document Customer Deployment Suite:** Comprehensive documentation covering architecture, prerequisites, IAM permission models, data boundaries, discovery categories, onboarding, cost estimates, upgrade, and teardown guides.
 - **Complete Unslop & UI-UX Pro Max Design Overhaul:**
   - Fully refactored across all 11 core workspaces based on [heydamir/unslop](https://github.com/heydamir/unslop) and [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill).
   - Eliminated all AI design slop: zero neon glowing boxes, zero saturated gradients, zero pulsing dots on static text, zero emojis in headers/buttons.
@@ -41,19 +47,15 @@
   9. *Agent Governance & Security (15 deterministic rules, 5 enforcement layers, Bedrock Guardrail spec)*
   10. *Adversarial Testing Laboratory (14 automated red-team test scenarios)*
   11. *Regulatory Compliance & Audit (CIS AWS Foundations v3.0, SOC 2, PCI-DSS scorecards)*
-- **Automated Test Battery:** **90 / 90 tests passing cleanly in ~5.6s** (100% pass rate).
+- **Automated Test Battery:** **94 / 94 tests passing cleanly in ~5.3s** (100% pass rate).
 - **CI/CD Gatekeeper CLI (`cli/aegis_cli.py`):**
-  - Standalone CLI evaluating Terraform plan AST, CloudFormation templates, and topology files.
+  - Standalone CLI evaluating Terraform plan AST, CloudFormation templates, topology files, and running preflight audits.
   - Returns deterministic exit codes (`0` for PASS, `1` for BLOCK).
 - **Zero-Mutation Enforcement:** Read-only IAM boundaries, $0.00 actual AWS spend, zero production mutation tools.
-- **Convenient 1-Click Launchers (`scripts/`):**
-  - `run_dev.ps1` / `run_dev.bat` for instantaneous local launch.
-  - `run_tests.ps1` / `run_tests.bat` for one-click verification.
-  - `run_cli.bat` for CLI gatekeeper demonstration.
 
 ---
 
-## 2. Test Verification Matrix (90 / 90 Passed)
+## 2. Test Verification Matrix (94 / 94 Passed)
 
 | Test Category | File Path | Total Tests | Passed | Execution Time |
 | :--- | :--- | :--- | :--- | :--- |
@@ -61,6 +63,7 @@
 | **Unified E2E Pipeline & Performance** | `tests/e2e/test_phase1_phase2_unified_pipeline.py` | 3 | 3 | ~0.5s |
 | **FastAPI Integration & SPA** | `tests/integration/test_api_endpoints.py` | 19 | 19 | ~0.8s |
 | **CI/CD Gatekeeper CLI** | `tests/phase2/test_cli_gatekeeper.py` | 8 | 8 | ~0.5s |
+| **Customer Installer & Preflight** | `tests/phase2/test_customer_installer.py` | 4 | 4 | ~0.15s |
 | **AWS Organizations Multi-Account** | `tests/phase2/test_multi_account.py` | 3 | 3 | ~0.05s |
 | **Security Hub & GuardDuty Correlator** | `tests/phase2/test_security_hub_correlator.py` | 2 | 2 | ~0.05s |
 | **Remediation PR Generator** | `tests/phase2/test_pr_generator.py` | 1 | 1 | ~0.05s |
@@ -76,19 +79,24 @@
 | **Terraform AST Change Analyzer** | `tests/unit/test_terraform_analyzer.py` | 4 | 4 | ~0.05s |
 | **CloudTrail Timeline Engine** | `tests/unit/test_timeline_engine.py` | 3 | 3 | ~0.05s |
 | **SecOps Webhook Notifier** | `tests/unit/test_webhook_notifier.py` | 2 | 2 | ~0.14s |
-| **Total Test Suite** | | **90** | **90** | **~5.6s** |
+| **Total Test Suite** | | **94** | **94** | **~5.3s** |
 
 ---
 
-## 3. How Any Evaluator / Judge Can Run the Platform
+## 3. How Any Customer Deploys AEGIS
 
-### Local Zero-Cost Execution (Synthetic Default)
-1. Clone repo: `git clone https://github.com/mindofyaseen/AEGIS.git && cd AEGIS`
-2. Install Python requirements: `pip install -r requirements.txt`
-3. Launch: `python backend/api/main.py` (or double-click `scripts\run_dev.bat`)
-4. Open browser: `http://localhost:8000` (FastAPI automatically serves the pre-built React SPA)
-5. Run tests: `python -m pytest tests/` (or double-click `scripts\run_tests.bat`)
+### 1-Click AWS CloudFormation Deployment:
+```bash
+aws cloudformation deploy \
+  --template-file deploy/aws/aegis_customer_deployable_stack.yml \
+  --stack-name aegis-devsecops-engineer \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+      EnvironmentName=prod \
+      BedrockModelId=anthropic.claude-haiku-4-5-20251001-v1:0
+```
 
-### Live CloudFront Web Interface
-- Simply open: [https://d3qd3kvh1ajueo.cloudfront.net](https://d3qd3kvh1ajueo.cloudfront.net)
-- Click **+ Connect AWS** in the top navigation bar to switch between 1-Click presets, input custom live AWS credentials, or upload custom IaC templates.
+### Preflight Verification:
+```bash
+python cli/aegis_cli.py --preflight
+```

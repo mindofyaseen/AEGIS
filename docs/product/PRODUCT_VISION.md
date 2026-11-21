@@ -1,54 +1,64 @@
 # AEGIS — Product Vision & Executive Strategy
+## Customer-Deployable Autonomous DevSecOps Engineer for AWS
 
-## 1. Executive Summary
-Modern enterprise cloud environments are dynamic, distributed, and increasingly complex. As software development velocities accelerate through automated continuous integration and continuous deployment (CI/CD) pipelines, cloud perimeters mutate hundreds of times each day. Infrastructure as Code (IaC) pull requests introduce subtle misconfigurations—such as overly permissive security group ingress, wildcard IAM policies, and unencrypted object storage—that traditional static linters fail to contextualize.
-
-Meanwhile, security operations and DevSecOps teams face debilitating alert fatigue. Generic security tools dump thousands of disconnected compliance alerts without understanding the true topology of the environment, whether a resource is reachable from the internet, or how an attacker could laterally traverse between systems.
-
-**AEGIS** is an AI-native autonomous cloud security and DevSecOps engineering platform built on **Amazon Bedrock Managed Agents (AgentCore)**. AEGIS introduces a paradigm shift: **evidence-backed, graph-correlated security investigations governed by deterministic safety gates.**
-
-Unlike naive LLM wrappers that hallucinate infrastructure state or offer generic advice, AEGIS enforces strict mathematical verification:
-1. **The Context Completeness Gate:** If discovery telemetry is incomplete, stale (>24 hours), or contradictory, AEGIS deterministically refuses to certify safety, issuing an `INSUFFICIENT_CONTEXT` verdict.
-2. **Deterministic Security & Graph Policy Engine:** Security violations and multi-hop attack paths are computed deterministically over a directed infrastructure knowledge graph. The AI model is strictly quarantined from altering verdicts.
-3. **Zero-Mutation Enforcement:** Read-only cloud telemetry collection with immutable zero-apply execution boundaries ensures AEGIS can never inadvertently damage production systems.
-4. **Verifiable Remediation Plans (Rule 14):** Every detected finding produces a minimal compatible Terraform diff, an AWS CLI rollback plan, and a verification test checklist.
+**Product Name:** AEGIS — Autonomous DevSecOps Engineer  
+**Product Category:** Customer-Deployable, Cloud-Native AI DevSecOps Engineering Solution  
+**License:** Apache-2.0 (Open Source)  
+**Target Platform:** Amazon Web Services (AWS)  
 
 ---
 
-## 2. The Core Defined Job
-In strict compliance with the AWS Builder Center *"Agents, your rules"* hackathon mandate, AEGIS performs exactly one well-defined, auditable job:
+## 1. Central Proposition
 
-> *"Perform a read-only, evidence-backed security investigation of AWS infrastructure and proposed infrastructure changes. Discover relevant resources and relationships, correlate security findings and change evidence, analyze potential attack paths and blast radius, and produce a justified risk verdict with remediation recommendations. Refuse to make a safety determination when the available infrastructure evidence is incomplete, stale, contradictory, or insufficient."*
+> **"Deploy your own AI DevSecOps Engineer inside your AWS environment. Let it understand your existing infrastructure, investigate security risks, analyze changes, trace potential attack paths, and recommend engineering improvements through controlled AI workflows."**
 
----
+AEGIS is **not** a centralized SaaS platform that collects customer credentials. It is **not** a generic chatbot wrapper, a static dashboard, or an agent-builder kit.
 
-## 3. Product Principles
-AEGIS is built upon four foundational product tenets:
-
-### Tenet 1: Zero-Trust Telemetry & Verifiable Evidence
-No claim is accepted without cryptographic or API evidence. Every node and edge in the AEGIS knowledge graph records its `source_collector`, discovery timestamp, API call provenance, and confidence score.
-
-### Tenet 2: Deterministic Policy Separation
-Large Language Models are exceptional at natural language explanation, code diff synthesis, and narrative correlation. They are fundamentally unsuited for probabilistic safety evaluations. In AEGIS:
-$$\text{Verdict} = f_{\text{deterministic}}(\text{CompletenessGate}, \text{GraphEngine}, \text{SecurityRules})$$
-The LLM never sets or overrides the verdict.
-
-### Tenet 3: Fail-Closed Completeness Gate
-In cybersecurity, an absence of evidence is not evidence of absence. If an IAM role collector times out or credentials lack permission to enumerate S3 buckets, traditional tools report zero errors. AEGIS immediately blocks release with `INSUFFICIENT_CONTEXT`, protecting engineering teams from catastrophic blind spots.
-
-### Tenet 4: Actionable Engineering Remediation
-A security finding without a verified patch is just noise. AEGIS generates exact, copy-pasteable Terraform diffs, single-line AWS CLI remediation commands, emergency rollback plans, and regression test steps.
+We provide a **ready-made, complete AI DevSecOps Engineer** that customers deploy directly into their own AWS accounts. The customer owns the deployed runtime environment, the IAM execution role, the data storage, and the investigation records. Existing production workloads remain untouched.
 
 ---
 
-## 4. Target Personas
-1. **Cloud Security Engineers & CISOs:** Require continuous perimeter auditing, multi-hop lateral attack path visualization, and zero false-safe releases.
-2. **DevOps & Platform Engineers:** Require automated CI/CD pull request gatekeeping that evaluates Terraform plans against live topology before production deployment.
-3. **Security Operations Center (SOC) Analysts:** Require instant CloudTrail timeline correlation to investigate perimeter configuration drift.
+## 2. Customer Experience & Workflows
+
+An enterprise with existing EC2 instances, VPCs, IAM roles, S3 buckets, RDS databases, and Terraform code deploys AEGIS via a single CloudFormation template.
+
+Once deployed, AEGIS:
+1. Initializes its in-account serverless agent runtime.
+2. Discovers existing infrastructure using strictly scoped, read-only IAM permissions.
+3. Models multi-directional relationships and dependencies into an in-memory knowledge graph.
+4. Traces traversable multi-hop attack paths from Internet Gateways to crown-jewel assets.
+5. Evaluates the deterministic Context Completeness Gate (refusing false-safe determinations if data is missing).
+6. Synthesizes precision Rule 14 unified `.patch` diffs and rollback plans.
+7. Supports natural language engineering investigations via its private web console.
+
+### Sample Natural Language Engineering Workflows:
+- *"Analyze my AWS infrastructure and identify the most critical security risks."*
+- *"Why is this EC2 instance publicly exposed?"*
+- *"Show me which resources this IAM role can access."*
+- *"Trace potential attack paths from the internet to sensitive databases."*
+- *"Review my latest Terraform plan against live topology."*
+- *"Generate a Terraform patch to resolve this issue with safe rollback steps."*
 
 ---
 
-## 5. Commercial Roadmap
-- **Phase 1 (AWS Builder Center Hackathon):** AWS core infrastructure (VPC, Subnet, Route Tables, Security Groups, EC2, IAM, S3, RDS), Bedrock AgentCore harness, 15 Governance Rules, deterministic Context Completeness Gate, React Executive Dashboard.
-- **Phase 2 (Post-Hackathon Q1 2027):** AWS Organizations multi-account discovery, AWS Control Tower integration, automated PR bot for GitHub Actions and GitLab CI.
-- **Phase 3 (Enterprise Q2 2027):** Multi-cloud support for Microsoft Azure (Azure Resource Manager & Graph API) followed by Google Cloud Platform (GCP). Commercial enterprise SaaS tier with SOC 2 Type II compliance.
+## 3. Core Architectural Tenets
+
+### Tenet 1: Customer Account Ownership & Data Sovereignty
+AEGIS runs inside the customer's AWS environment. Topology graphs, CloudTrail audit logs, and IAM policies never leave the customer's boundary. Only sanitized, structural prompts are sent to Amazon Bedrock for in-region inference. Zero S3 object contents or secrets are ever read.
+
+### Tenet 2: Zero Production Workload Interference
+Installing AEGIS provisions isolated runtime resources under the `aegis-*` prefix. It never modifies, stops, or reconfigures existing production EC2 instances, VPCs, databases, or application stacks.
+
+### Tenet 3: Deterministic Policy Separation
+Security verdicts (`BLOCK`, `INSUFFICIENT_CONTEXT`, `READY_FOR_HUMAN_REVIEW`) are calculated mathematically by deterministic Python policy code. The LLM is quarantined from overriding or altering safety verdicts.
+
+### Tenet 4: Fail-Closed Context Completeness
+If discovery telemetry is incomplete (< 85% score) or stale (> 24 hours), AEGIS immediately refuses to certify safety, eliminating the catastrophic "Silent Green" fallacy.
+
+---
+
+## 4. Multi-Cloud Roadmap Progression
+1. **Phase 1 (Current):** AEGIS for AWS (In-Account Serverless DevSecOps Engineer).
+2. **Phase 2:** AEGIS for Microsoft Azure (Azure Resource Manager & Graph API).
+3. **Phase 3:** AEGIS for Google Cloud Platform (GCP).
+4. **Phase 4:** Hybrid & On-Premises Kubernetes Infrastructure.

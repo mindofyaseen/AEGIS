@@ -11,7 +11,9 @@ import {
   ArrowRight,
   ExternalLink,
   Lock,
-  UploadCloud
+  UploadCloud,
+  Copy,
+  Check
 } from 'lucide-react';
 import { investigateCustomInfrastructure } from '../api';
 import { InvestigationReport } from '../types';
@@ -27,7 +29,7 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
   onClose,
   onConnected
 }) => {
-  const [connectMethod, setConnectMethod] = useState<'preset' | 'role' | 'iac'>('preset');
+  const [connectMethod, setConnectMethod] = useState<'preset' | 'deploy' | 'role' | 'iac'>('preset');
   const [selectedPreset, setSelectedPreset] = useState<'fintech-bank' | 'healthcare-hipaa' | 'retail-ecommerce'>('fintech-bank');
   const [accountId, setAccountId] = useState('237657481511');
   const [region, setRegion] = useState('us-east-1');
@@ -35,6 +37,7 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
   const [iacContent, setIacContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [copiedCmd, setCopiedCmd] = useState(false);
 
   if (!isOpen) return null;
 
@@ -93,10 +96,10 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
         {/* Modal Body */}
         <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
           {/* Method Selector Tabs */}
-          <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             <button
               onClick={() => setConnectMethod('preset')}
-              className={`p-3 rounded-md border text-left transition-colors flex flex-col gap-1 ${
+              className={`p-2.5 rounded-md border text-left transition-colors flex flex-col gap-1 ${
                 connectMethod === 'preset'
                   ? 'bg-white/[0.07] border-white/[0.15] text-white shadow-sm'
                   : 'bg-white/[0.02] border-white/[0.06] text-zinc-400 hover:border-white/[0.1]'
@@ -108,14 +111,33 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
                   1-Click Presets
                 </span>
               </div>
-              <span className="text-[11px] text-zinc-500">
-                Instant test without setting up AWS.
+              <span className="text-[10px] text-zinc-500 truncate">
+                Instant test without AWS.
+              </span>
+            </button>
+
+            <button
+              onClick={() => setConnectMethod('deploy')}
+              className={`p-2.5 rounded-md border text-left transition-colors flex flex-col gap-1 ${
+                connectMethod === 'deploy'
+                  ? 'bg-white/[0.07] border-white/[0.15] text-white shadow-sm'
+                  : 'bg-white/[0.02] border-white/[0.06] text-zinc-400 hover:border-white/[0.1]'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Server className={`w-3.5 h-3.5 shrink-0 ${connectMethod === 'deploy' ? 'text-sky-400' : 'text-zinc-500'}`} />
+                <span className={`font-medium ${connectMethod === 'deploy' ? 'text-white' : 'text-zinc-300'}`}>
+                  Deploy in My AWS
+                </span>
+              </div>
+              <span className="text-[10px] text-zinc-500 truncate">
+                In-account serverless stack.
               </span>
             </button>
 
             <button
               onClick={() => setConnectMethod('role')}
-              className={`p-3 rounded-md border text-left transition-colors flex flex-col gap-1 ${
+              className={`p-2.5 rounded-md border text-left transition-colors flex flex-col gap-1 ${
                 connectMethod === 'role'
                   ? 'bg-white/[0.07] border-white/[0.15] text-white shadow-sm'
                   : 'bg-white/[0.02] border-white/[0.06] text-zinc-400 hover:border-white/[0.1]'
@@ -124,17 +146,17 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
               <div className="flex items-center gap-1.5">
                 <Lock className={`w-3.5 h-3.5 shrink-0 ${connectMethod === 'role' ? 'text-sky-400' : 'text-zinc-500'}`} />
                 <span className={`font-medium ${connectMethod === 'role' ? 'text-white' : 'text-zinc-300'}`}>
-                  Live AWS Account
+                  Live Role Connect
                 </span>
               </div>
-              <span className="text-[11px] text-zinc-500">
-                Read-only IAM role. 100% safe.
+              <span className="text-[10px] text-zinc-500 truncate">
+                Read-only IAM role.
               </span>
             </button>
 
             <button
               onClick={() => setConnectMethod('iac')}
-              className={`p-3 rounded-md border text-left transition-colors flex flex-col gap-1 ${
+              className={`p-2.5 rounded-md border text-left transition-colors flex flex-col gap-1 ${
                 connectMethod === 'iac'
                   ? 'bg-white/[0.07] border-white/[0.15] text-white shadow-sm'
                   : 'bg-white/[0.02] border-white/[0.06] text-zinc-400 hover:border-white/[0.1]'
@@ -146,8 +168,8 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
                   Upload IaC
                 </span>
               </div>
-              <span className="text-[11px] text-zinc-500">
-                Paste CloudFormation or Terraform.
+              <span className="text-[10px] text-zinc-500 truncate">
+                CloudFormation or TF.
               </span>
             </button>
           </div>
@@ -203,6 +225,64 @@ export const ConnectCloudModal: React.FC<ConnectCloudModalProps> = ({
                 <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
                 <span>
                   <strong>Designed for Leadership:</strong> Presets simulate real enterprise environments so you can see AEGIS evaluate risks, calculate financial penalties, and generate 1-click fixes without needing any AWS credentials.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Form Fields for In-Account Customer Deployment */}
+          {connectMethod === 'deploy' && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-xs font-semibold text-white">Deploy In-Account AI DevSecOps Engineer</h4>
+                <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
+                  Provision your private AEGIS runtime directly inside your AWS environment using native AWS CloudFormation. 100% of data and graphs remain inside your account boundary.
+                </p>
+              </div>
+
+              {/* Step 1: Preflight */}
+              <div className="p-3.5 rounded-md bg-white/[0.02] border border-white/[0.08] space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-white">Step 1: Automated Preflight Audit</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Zero-Cost Check</span>
+                </div>
+                <p className="text-xs text-zinc-400">
+                  Verifies caller credentials, CloudFormation template schemas, and Amazon Bedrock in-region model reachability before provisioning.
+                </p>
+                <div className="flex items-center justify-between bg-black/40 border border-white/[0.08] rounded p-2 text-xs font-mono text-zinc-300">
+                  <span>python cli/aegis_cli.py --preflight</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText("python cli/aegis_cli.py --preflight");
+                      setCopiedCmd(true);
+                      setTimeout(() => setCopiedCmd(false), 2000);
+                    }}
+                    className="p-1 rounded text-zinc-400 hover:text-white transition-colors"
+                  >
+                    {copiedCmd ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Step 2: 1-Click Launch */}
+              <div className="p-3.5 rounded-md bg-white/[0.02] border border-white/[0.08] space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-white">Step 2: 1-Click CloudFormation Deployment</span>
+                  <span className="text-[10px] font-mono text-zinc-500">2 Mins Execution</span>
+                </div>
+                <p className="text-xs text-zinc-400">
+                  Deploys 5 serverless support resources (`aegis-*`) without modifying any existing production workloads.
+                </p>
+                <div className="bg-black/40 border border-white/[0.08] rounded p-2 text-xs font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+                  aws cloudformation deploy --template-file deploy/aws/aegis_customer_deployable_stack.yml --stack-name aegis-devsecops-engineer --capabilities CAPABILITY_NAMED_IAM
+                </div>
+              </div>
+
+              {/* Guarantee Box */}
+              <div className="p-3 rounded-md bg-emerald-950/20 border border-emerald-500/20 text-xs text-emerald-300 leading-relaxed flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+                <span>
+                  <strong>Customer Account Ownership:</strong> You own the runtime, the IAM role, and the data. AEGIS runs strictly read-only and never reads S3 object contents or secrets.
                 </span>
               </div>
             </div>
