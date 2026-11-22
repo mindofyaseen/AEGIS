@@ -1,112 +1,71 @@
 # INCIDENT RESPONSE & FORENSIC INVESTIGATION ARCHITECTURE
-**Document ID:** `AEGIS-ARCH-012`  
-**Domain:** Cloud Incident Response, CloudTrail Forensics, Blast Radius, Automated Containment  
-**Author:** Principal Enterprise Cloud Security Architect  
-**Status:** Architecture Blueprint / Discovery Phase  
+**Document ID:** `AEGIS-ARCH-012-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** Cloud Forensics, CloudTrail Correlation, Blast Radius, S3 Object Lock Semantics  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Corrected S3 Object Lock design; replaced forced Compliance Mode with Governance Mode default; added Legal Hold option; detailed CloudTrail Athena query partitioning to eliminate Boto3 API throttling.
 
 ---
 
 ## 1. Executive Summary & Core Objective
 
-When an active security incident occurs in AWS, traditional incident response is crippled by fragmented telemetry, slow manual log queries across terabytes of CloudTrail logs, and delays in calculating what resources an attacker has accessed or could access next.
+During an active cloud security incident, security teams face fragmented log telemetry, slow manual investigations, and severe API rate limits when querying AWS CloudTrail. 
 
-AEGIS transforms incident response into an **autonomous, graph-augmented investigation workflow**. When an alert fires (or when a human operator asks *"Investigate recent suspicious activity on role X"*), AEGIS:
-1. Reconstructs the exact chronological forensic timeline from AWS CloudTrail and GuardDuty.
-2. Performs automated blast radius calculation by traversing the infrastructure graph outward from the compromised identity or resource.
-3. Synthesizes a natural language Incident Briefing with verifiable indicators of compromise (IOCs).
-4. Generates an emergency Containment Action Plan (e.g. session revocation, policy quarantine, security group isolation) requiring one-click human approval.
-5. Archives an immutable, cryptographically verifiable evidence bundle to Amazon S3 with Object Lock.
+AEGIS provides an **Autonomous Forensic Investigation Engine** that correlates CloudTrail management events, GuardDuty alerts, and graph state to reconstruct chronological attack timelines, calculate active blast radius, and generate verified containment plans.
 
 ---
 
-## 2. Forensic Timeline Reconstruction Engine
+## 2. Evidence Archival & S3 Object Lock Semantics
 
-### 2.1 Multi-Source Chronological Correlation
-AEGIS correlates three distinct telemetry layers:
-- **Control Plane Events**: AWS CloudTrail management events (`LookupEvents` / Athena queries against CloudTrail S3 bucket).
-- **Data Plane Events**: S3 object access, KMS decrypt operations, DynamoDB read bursts.
-- **Network & Threat Telemetry**: GuardDuty findings, VPC Flow Log anomalies, Route 53 DNS exfiltration queries.
+### 2.1 The Critical Distinction: Governance Mode vs Compliance Mode
+
+| Feature | S3 Object Lock Governance Mode (Recommended Default) | S3 Object Lock Compliance Mode (Strict Enterprise Audit) |
+| :--- | :--- | :--- |
+| **Root User Deletion** | **Permitted** (With `s3:BypassGovernanceRetention` permission). | **Strictly Prohibited** (Even AWS Account Root cannot delete or shorten retention). |
+| **Accidental Cost Risk** | Low (Retention can be adjusted if massive unintended logs are stored). | **Extremely High** (Customer must pay for storage until retention expires; irreversible). |
+| **Retention Duration** | 30 to 90 days (Customer configurable). | 365 to 2555 days (Strict regulatory only). |
+| **AEGIS Recommendation** | **Adopt as Platform Default.** | **Opt-In Only** (Requires CISO / Founder explicit sign-off). |
+
+### 2.2 S3 Legal Hold
+For active investigations, AEGIS applies an **S3 Legal Hold** (`s3:PutObjectLegalHold`). Unlike timed retention periods, a Legal Hold prevents object deletion indefinitely until explicitly removed by a security investigator, providing flexible evidence preservation without permanent storage lock-in.
+
+---
+
+## 3. High-Performance Forensic Query Architecture
+
+### 3.1 Overcoming CloudTrail API Throttling
+AWS CloudTrail `LookupEvents` enforces a hard rate limit of **2 requests per second per account**. Issuing repeated queries during an incident causes immediate HTTP 429 throttling.
+
+### AEGIS 2-Tier Forensic Query Engine:
+1. **Recent Live Events ($< 2$ hours):** Boto3 `LookupEvents` with client-side exponential backoff, jitter, and strict attribute filters (`Username`, `EventName`, `ResourceName`).
+2. **Historical Forensics ($> 2$ hours):** Queries the customer's CloudTrail S3 bucket directly using **Amazon Athena partition projection** (or local DuckDB parquet scanning for small scopes). This bypasses AWS CloudTrail API limits entirely and scans gigabytes of audit logs in seconds.
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Attacker
-    participant AWS as AWS Control Plane (CloudTrail)
-    participant Engine as AEGIS Forensic Engine
-    participant Graph as NetworkX Topology Graph
-    actor SecOps as Security Operations Lead
+flowchart LR
+    subgraph Query Dispatcher
+        Req[Forensic Query: Principal alice-dev] --> Splitter{Event Age}
+        Splitter -->|< 2 Hours| Boto[Boto3 CloudTrail LookupEvents]
+        Splitter -->|> 2 Hours| Athena[Amazon Athena S3 Parquet Engine]
+    end
 
-    Attacker->>AWS: Compromises Leaked IAM Key (sts:GetCallerIdentity)
-    Attacker->>AWS: Enumerates S3 Buckets (s3:ListAllMyBuckets)
-    Attacker->>AWS: Downloads Sensitive Data (s3:GetObject)
-    AWS-->>Engine: CloudTrail Events Ingested
-    SecOps->>Engine: "Investigate unusual activity on user alice-dev"
-    Engine->>Engine: Filter CloudTrail Timeline (Last 24h, Filter UserIdentity)
-    Engine->>Graph: Traverse Nodes from User -> Assumed Roles -> Buckets
-    Engine->>SecOps: Renders Visual Timeline & Critical Blast Radius
-    Engine->>SecOps: Proposes Containment: "Revoke STS Sessions & Attach AWSDenyAll"
-    SecOps->>Engine: One-Click Approval Granted
-    Engine->>AWS: Boto3 IAM PutUserPolicy (Immediate Containment)
+    subgraph Data Sources
+        Boto --> CTService[AWS CloudTrail API]
+        Athena --> S3Bucket[(Customer CloudTrail S3 Bucket)]
+    end
+
+    CTService --> Correlator[Chronological Timeline Correlator]
+    S3Bucket --> Correlator
+    Correlator --> Graph[(NetworkX Topology Graph)]
+    Graph --> Timeline[Unified Forensic Timeline & Blast Radius]
 ```
 
-### 2.2 Forensic Query Optimization
-To avoid AWS CloudTrail `LookupEvents` rate limiting (2 API calls per second per account), AEGIS implements a two-tier strategy:
-1. **Recent Events ($< 2$ hours)**: Boto3 `cloudtrail:LookupEvents` with client-side exponential backoff and attribute filters (`EventName`, `Username`, `ResourceName`).
-2. **Historical Forensics ($> 2$ hours)**: Queries the customer's CloudTrail S3 bucket using Amazon Athena partition projection or local DuckDB parquet scanning, eliminating API throttling entirely.
-
 ---
 
-## 3. Blast Radius Computation Algorithm
+## 4. Blast Radius Computation & Containment Playbooks
 
-Given a compromised entity $V_{\text{target}}$ (e.g. an EC2 instance, IAM role, or EKS pod), the Blast Radius is computed via directional graph traversal on the directed multigraph $G = (V, E)$:
+Given a compromised entity $V_{\text{target}}$:
+$$\text{BlastRadius}(V_{\text{target}}) = \{ u \in V \mid \exists \text{ path } P = (V_{\text{target}}, \dots, u) \}$$
 
-$$\text{BlastRadius}(V_{\text{target}}) = \left\{ u \in V \mid \exists \text{ path } P = (V_{\text{target}}, \dots, u) \text{ where } \forall e \in P, \text{privilege}(e) > 0 \right\}$$
-
-### Classification of Impacted Nodes:
-1. **Tier 1 (Direct Control)**: Resources the entity can directly modify or delete (e.g. KMS keys, DynamoDB tables, VPC route tables).
-2. **Tier 2 (Lateral Movement Opportunities)**: EC2 instances the role can SSM into, or IAM roles it can assume via `sts:AssumeRole`.
-3. **Tier 3 (Crown Jewels at Risk)**: S3 buckets containing customer PII/financial records, production RDS clusters, or Route 53 public DNS zones reachable along the directed path.
-
----
-
-## 4. Automated Containment Standard Operating Procedures (SOPs)
-
-AEGIS prepares instant, deterministic containment actions tailored to the compromise type:
-
-### SOP 1: IAM Credential Invalidation
-- **Action**: Immediately attaches an explicit deny inline policy and revokes all active STS sessions.
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AegisEmergencyRevoke",
-      "Effect": "Deny",
-      "Action": "*",
-      "Resource": "*",
-      "Condition": {
-        "DateLessThan": {
-          "aws:TokenIssueTime": "2026-11-22T12:00:00Z"
-        }
-      }
-    }
-  ]
-}
-```
-
-### SOP 2: EC2 Host Isolation
-- **Action**: Modifies instance network interface (ENI) security groups, replacing them with a dedicated quarantine security group (`aegis-quarantine-sg`) that blocks all ingress and egress traffic except to the forensic analysis workstation.
-- **Snapshot Creation**: Triggers Boto3 `ec2:CreateSnapshot` on all attached EBS volumes for offline disk forensics.
-
-### SOP 3: S3 Bucket Quarantine
-- **Action**: Applies emergency bucket policy denying all `s3:GetObject` and `s3:PutObject` operations except for designated incident response role ARN.
-
----
-
-## 5. Post-Incident Evidence Archival & Chain of Custody
-
-All investigative artifacts are bundled into a tamper-evident forensic package:
-- Complete JSON dump of relevant CloudTrail log records.
-- Graph sub-tree snapshot at the moment of compromise.
-- Bedrock AI reasoning chain and verification verdicts.
-- Cryptographic SHA-256 hash generated and stored in an immutable Amazon S3 bucket with **Object Lock (Compliance Mode)** enabled for 365 days.
+### Containment Playbooks (Requiring Mode 2 Human Approval):
+1. **IAM Credential Invalidation:** Deactivates compromised access keys (`UpdateAccessKey: Status=Inactive`) and attaches a temporary inline deny policy terminating active sessions.
+2. **EC2 Quarantine:** Detaches public IP / EIP and attaches an isolated quarantine security group blocking all ingress/egress.
+3. **S3 Bucket Lockdown:** Attaches emergency bucket policy denying public and external account access.

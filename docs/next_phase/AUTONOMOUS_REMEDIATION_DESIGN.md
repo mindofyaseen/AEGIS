@@ -1,100 +1,94 @@
 # AUTONOMOUS REMEDIATION & GOVERNANCE ARCHITECTURE
-**Document ID:** `AEGIS-ARCH-013`  
-**Domain:** Automated Cloud Remediation, Policy Guardrails, Rollback Runbooks, Human-in-the-Loop  
-**Author:** Principal DevSecOps Engineer  
-**Status:** Architecture Blueprint / Discovery Phase  
+**Document ID:** `AEGIS-ARCH-013-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** Cloud Remediation, Policy Guardrails, Rollback Reality, Mode 1/2/3 Redesign  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Completely removed false claims of "atomic rollback" for distributed cloud operations; redesigned 3 remediation modes; defined strict prerequisite validation, compensation actions, production explicit allowlists, and blast-radius circuit breakers.
 
 ---
 
 ## 1. Executive Summary & Core Objective
 
-The central premise of an Autonomous DevSecOps Engineer is closing the loop between detection and remediation. Identifying thousands of vulnerabilities without providing a safe, verified mechanism to fix them merely creates alert fatigue and technical debt.
+Closing the loop between vulnerability detection and remediation is the core promise of an Autonomous DevSecOps Engineer. However, naive automated mutations in cloud environments create catastrophic operational risks.
 
-However, unchecked autonomous remediation in production cloud environments is dangerous. A naive agent that closes a database security group port or revokes an IAM policy can inadvertently cause an enterprise outage.
+A critical engineering truth governs this design: **AWS cloud infrastructure operations are distributed, asynchronous, and non-atomic.** Attaching an explicit deny policy or revoking an IAM session immediately terminates legitimate in-flight transactions; rolling it back does not recover dropped requests. Moving an EC2 instance to a quarantine security group abruptly severs live database and user TCP connections.
 
-AEGIS implements a **Progressive 3-Tier Remediation Architecture** protected by **hard deterministic policy guardrails**, **blast radius pre-validation**, and **automated dry-run and rollback runbooks**.
+This specification details a **Safety-First, Verified Remediation Engine** built around three strictly controlled operational modes.
 
 ---
 
-## 2. Progressive 3-Tier Remediation Model
+## 2. Redesigned 3-Tier Remediation Architecture
 
 ```mermaid
 flowchart TD
-    Detect[Security Finding Detected] --> Evaluate[Deterministic Guardrail Evaluation]
+    Finding[Security Finding Identified] --> Gate{Mode Evaluator}
     
-    Evaluate -->|Mode 1: Low Trust / Production Critical| M1[Mode 1: Advisory & Code Gen]
-    Evaluate -->|Mode 2: Standard Enterprise Default| M2[Mode 2: Semi-Autonomous PR / Staged Change]
-    Evaluate -->|Mode 3: High Trust / Safe Auto-Remediation| M3[Mode 3: Autonomous Self-Healing]
+    Gate -->|Default (100% Safe)| M1[Mode 1: Advisory & Code Gen]
+    Gate -->|Standard Enterprise Action| M2[Mode 2: Human-Approved Remediation]
+    Gate -->|Future Opt-In Allowlist Only| M3[Mode 3: Controlled Autonomous]
 
-    M1 --> Manual[Human Applies IaC Diff Manually]
-    
-    M2 --> Review[Engineer Reviews Change in UI / PR / Slack]
-    Review -->|Approved| Exec2[Execute Mutation via Boto3 / IaC]
-    Review -->|Rejected| AuditReject[Log Rejection Feedback to Memory]
-    
-    M3 --> DryRun[Execute Dry-Run Simulation]
-    DryRun -->|Pre-flight Passed| Exec3[Apply Immediate Atomic Remediation]
-    DryRun -->|Pre-flight Failed| FallbackM2[Fallback to Mode 2 Human Review]
+    subgraph Mode 1 Operations [Zero Cloud Mutation]
+        M1 --> Patch[Generate Terraform / CloudFormation Diff]
+        M1 --> CLI[Generate AWS CLI Verification Command]
+        M1 --> HumanManual[Engineer Applies via GitOps CI/CD]
+    end
 
-    Exec2 --> PostCheck[Post-Remediation Verification & Rollback Snapshot]
-    Exec3 --> PostCheck
+    subgraph Mode 2 Operations [Human-in-the-Loop Approval]
+        M2 --> Preflight[Execute Precondition & Dependency Check]
+        Preflight --> Radius[Calculate Active Blast Radius]
+        Radius --> Staged[Create Staged Change Plan / PR]
+        Staged --> Prompt[Post Approval Request to Web Console & Slack]
+        Prompt -->|Cryptographic Approval by Approver Role| Exec2[Execute Mutation via Scoped IAM]
+        Prompt -->|Rejected| AuditReject[Log Reason to Ledger]
+        Exec2 --> HealthCheck[Post-Execution Health Verification]
+        HealthCheck -->|Healthy| Commit[Record Completed Transaction]
+        HealthCheck -->|Unhealthy| Compensate[Execute Compensation Action & Alert P1]
+    end
+
+    subgraph Mode 3 Operations [Narrow Low-Risk Safe Allowlist]
+        M3 --> CheckAllowlist{Explicit Allowlist & Non-Prod?}
+        CheckAllowlist -->|No / Prod Tagged| FallbackM2[Fallback to Mode 2 Human Review]
+        CheckAllowlist -->|Yes| Exec3[Apply Atomic Single-Resource Fix]
+        Exec3 --> HealthCheck
+    end
 ```
-
-### 2.1 Remediation Mode Definitions
-
-| Mode | Name | Execution Model | Typical Use Cases |
-| :--- | :--- | :--- | :--- |
-| **Mode 1** | **Advisory & Code Generation** | Zero AWS state mutation. AEGIS generates Terraform diffs, CloudFormation templates, or AWS CLI commands. | Production core databases, VPC peering, Route 53 root zones, core IAM boundary policies. |
-| **Mode 2** | **Semi-Autonomous (Default)** | AEGIS stages the fix, creates a GitHub/GitLab PR or AWS Change Set, and posts an approval prompt to Slack/UI. Mutation executes only after cryptographic sign-off. | EC2 Security Group restriction, S3 bucket encryption, IAM unused role cleanup, CloudTrail re-enablement. |
-| **Mode 3** | **Fully Autonomous (Self-Healing)** | AEGIS executes immediate atomic remediation within milliseconds without waiting for human input. | Non-production environments, auto-enabling S3 Public Access Block on newly created open buckets, revoking leaked IAM access keys, quarantine of active crypto-miners. |
 
 ---
 
-## 3. Immutable Safety Guardrails & Blast Radius Pre-Validation
+## 3. The 3 Remediation Modes Defined
 
-Autonomous mutations are governed by strict safety rules that cannot be overridden by AI prompts:
+### Mode 1: Advisory (Default Out-of-the-Box)
+- **Zero AWS Mutation:** AEGIS never calls mutating AWS APIs.
+- **Deliverables:** Generates precise Terraform/CloudFormation diffs, explains root cause, provides risk justification, and provides step-by-step human verification instructions.
+- **Target Resources:** All resources, especially core production databases, VPC peering, Route 53 zones, and master IAM policies.
 
-1. **Tag-Based Exclusion Boundaries**:
-   - Any resource tagged `Environment=Production`, `Tier=Critical`, or `AEGIS-Immutable=True` is **strictly prohibited from Mode 3 auto-remediation**.
-   - AEGIS automatically drops Mode 3 requests on tagged resources down to Mode 2 (human sign-off required).
-2. **Blast Radius Threshold**:
-   - If a proposed security group modification impacts $> 3$ active compute instances, Mode 3 is aborted.
-   - If an IAM policy revocation affects $> 1$ active assumed principal in the last 7 days, Mode 3 is aborted.
-3. **Service Quota & Dependency Checks**:
-   - Before deleting any unused security group, AEGIS performs an exhaustive ENI check across all VPCs to guarantee zero active attachments.
+### Mode 2: Human-Approved Remediation (Enterprise Standard)
+- **Workflow:**
+  1. AEGIS stages the proposed change and validates preconditions (e.g. verifying that a replacement security group rule exists before deleting an old rule).
+  2. Inspects affected dependencies and computes exact blast radius (e.g., "This security group modification affects 2 EC2 instances: `i-012` and `i-045`").
+  3. Produces a detailed Change Plan and requires cryptographic sign-off from a user holding the **Remediation Approver** RBAC role.
+  4. Executes the change via a scoped execution worker.
+  5. Runs post-change validation checks. If application endpoints fail health checks, triggers a pre-defined compensation action.
+
+### Mode 3: Controlled Autonomous Remediation (Future Opt-In Only)
+- **Strictly Allowlisted Actions:** Only permitted for narrowly scoped, low-risk, idempotent, and reversible actions:
+  - Enabling S3 Default Bucket Encryption (SSE-KMS or SSE-S3).
+  - Enabling S3 Bucket Versioning on non-production buckets.
+  - Enabling automated RDS backup retention on non-production databases.
+  - Attaching AWS-managed MFA requirement to new IAM users in sandbox accounts.
+- **Exclusion Boundaries:**
+  - **Tag Protection:** Resources tagged `Environment=Production` or `Tier=Critical` are **strictly prohibited** from Mode 3.
+  - **Account Boundary:** Production AWS accounts can disable Mode 3 entirely via policy.
+  - **Blast Radius Circuit Breaker:** If an action affects $> 1$ resource, Mode 3 is aborted and downgraded to Mode 2.
 
 ---
 
-## 4. Dry-Run & Automated Rollback Runbooks
+## 4. The Fallacy of "Atomic Rollback" & Compensation Action Runbooks
 
-Every remediation action follows an atomic transaction pattern:
+In distributed cloud architectures, true database-style atomic rollbacks do not exist. AEGIS implements **Compensation Action Runbooks**:
 
-$$\text{Remediation Transaction} = \langle \text{Snapshot State} \rightarrow \text{Pre-flight Validation} \rightarrow \text{Apply Mutation} \rightarrow \text{Verify Health} \rightarrow (\text{Commit} \lor \text{Rollback}) \rangle$$
-
-### 4.1 State Snapshot Capture
-Before executing any AWS API mutation, AEGIS records the exact prior state in DynamoDB:
-```json
-{
-  "transaction_id": "tx-88658e36-rem-042",
-  "resource_arn": "arn:aws:ec2:us-east-1:123456789012:security-group/sg-0123456789abcdef0",
-  "action": "RevokeSecurityGroupIngress",
-  "prior_state": {
-    "IpPermissions": [
-      {
-        "IpProtocol": "tcp",
-        "FromPort": 22,
-        "ToPort": 22,
-        "IpRanges": [{"CidrIp": "0.0.0.0/0", "Description": "Legacy SSH"}]
-      }
-    ]
-  },
-  "timestamp": "2026-11-22T12:00:00Z",
-  "status": "PENDING"
-}
-```
-
-### 4.2 Automated Rollback Execution
-If post-remediation health checks fail (e.g. an EC2 status check reports unhealthy, or an application endpoint returns HTTP 500 within 60 seconds), AEGIS automatically reverses the mutation:
-- Re-executes Boto3 `AuthorizeSecurityGroupIngress` with the exact stored `prior_state`.
-- Emits a P1 alert: *"Remediation transaction failed health check; automated rollback completed successfully."*
-- Appends rollback incident details to the immutable audit ledger.
+| Remediation Mutation | Inherent Risk & Side Effects | Compensation Action (If Health Check Fails) |
+| :--- | :--- | :--- |
+| **Revoke SG Ingress Rule (Port 22/80)** | Closes active SSH/HTTP connections; drops traffic. | Re-authorizes original CIDR ingress rule; notifies on-call engineer. |
+| **Enable S3 Public Access Block** | May break public static assets or third-party webhooks. | Re-enables public read on specific bucket policy if health probe fails. |
+| **Revoke IAM Access Key** | Immediately halts automated scripts/pipelines using the key. | **Irreversible:** Once an IAM key is deleted, it cannot be recovered. Mitigation: AEGIS **deactivates** the key (`Status=Inactive`) rather than deleting it, allowing instant reactivation. |
+| **Isolate Compromised EC2 Instance** | Severs all active network sessions; triggers cluster failover. | Re-attaches original security groups and resumes routing if investigation reveals false positive. |

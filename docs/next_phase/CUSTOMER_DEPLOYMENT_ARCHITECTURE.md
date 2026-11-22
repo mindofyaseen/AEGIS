@@ -1,91 +1,92 @@
-# AEGIS — Customer-Owned Deployment Architecture
-## In-Account Serverless Packaging, Data Boundaries & Operational Runtime
-
-**Document Version:** 3.0-PHASE-0  
-**Classification:** Enterprise Engineering Architecture  
+# CUSTOMER DEPLOYMENT ARCHITECTURE SPECIFICATION
+**Document ID:** `AEGIS-ARCH-004-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** Customer AWS Account Packaging, CloudFormation, Trust Boundaries, Serverless Topology  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Refined customer data boundary definitions; clarified AWS PrivateLink endpoint requirements; detailed scoped IAM roles and deployment prerequisites.
 
 ---
 
-## 1. In-Account Deployment Topology
+## 1. Executive Summary & Core Objective
 
-AEGIS is packaged as a self-contained, customer-owned serverless stack deployed directly into the customer's AWS account.
+The central architectural tenet of AEGIS is **In-Account Deployment**. Customers deploy AEGIS directly into their own AWS infrastructure, retaining total control over IAM permissions, operational data, audit histories, and security analysis.
 
-```
-+-----------------------------------------------------------------------------------+
-|                        CUSTOMER AWS ACCOUNT BOUNDARY                              |
-|                                                                                   |
-|  +-----------------------------------------------------------------------------+  |
-|  | AWS MANAGEMENT CONSOLE / AWS CLI                                            |  |
-|  | (Customer launches: deploy/aws/aegis_customer_deployable_stack.yml)           |  |
-|  +-----------------------------------------------------------------------------+  |
-|                                         │                                         |
-|                                         ▼ (AWS CloudFormation)                    |
-|  +-----------------------------------------------------------------------------+  |
-|  | AEGIS RUNTIME STACK (Prefix: aegis-*)                                        |  |
-|  |                                                                             |  |
-|  |  1. AWS::IAM::Role (AegisScopedInspectorRole)                               |  |
-|  |     - SecurityAudit Managed Policy + Scoped API Action Allowlist             |  |
-|  |     - Zero Put*/Create*/Delete* permissions. No s3:GetObject on data buckets |  |
-|  |                                                                             |  |
-|  |  2. AWS::Lambda::Function (AegisServerlessBackendLambda)                     |  |
-|  |     - Python 3.12 Runtime + Ephemeral FastAPI ASGI / Mangum Adapter         |  |
-|  |     - NetworkX in-memory graph engine (< 25ms execution, < 128MB RAM)       |  |
-|  |     - Bedrock AgentCore execution driver                                    |  |
-|  |                                                                             |  |
-|  |  3. AWS::Lambda::Url (AegisLambdaFunctionUrl)                               |  |
-|  |     - Direct HTTPS REST endpoint with CORS and SigV4 support                |  |
-|  |                                                                             |  |
-|  |  4. AWS::S3::Bucket (AegisCustomerWebBucket)                                |  |
-|  |     - Encrypted bucket hosting static compiled React 18 Web Console assets  |  |
-|  |     - Expiring snapshot history folder (30-day lifecycle)                   |  |
-|  |                                                                             |  |
-|  |  5. AWS::CloudFront::Distribution (AegisConsoleCDN)                          |  |
-|  |     - Global CDN delivery with Origin Access Control (OAC)                  |  |
-|  +-----------------------------------------------------------------------------+  |
-|                                         │                                         |
-|                                         ▼ (Strictly Read-Only Describe*/Get*)     |
-|  +-----------------------------------------------------------------------------+  |
-|  | CUSTOMER EXISTING INFRASTRUCTURE (VPC, EC2, IAM, S3, RDS, EKS, CloudTrail)  |  |
-|  +-----------------------------------------------------------------------------+  |
-+-----------------------------------------------------------------------------------+
+This specification details the packaging, trust boundaries, provisioned AWS resources, and customer onboarding prerequisites for the single-account self-deployment model.
+
+---
+
+## 2. Self-Contained CloudFormation Topology
+
+AEGIS is packaged as a single, production-grade AWS CloudFormation template (`deploy/aws/aegis_customer_deployable_stack.yml`):
+
+```mermaid
+flowchart TD
+    CustomerAdmin[Customer Cloud Engineer] -->|aws cloudformation deploy| CFN[CloudFormation Stack: aegis-production]
+    
+    subgraph Provisioned In-Account Resources
+        CFN --> IAM[IAM Role: aegis-core-execution-role<br/>Scoped Read-Only & Audit Policies]
+        CFN --> S3[Amazon S3: aegis-state-accountid<br/>SSE-KMS Customer Managed Key]
+        CFN --> DDB[Amazon DynamoDB: aegis-findings-table<br/>On-Demand Pay-per-Request]
+        CFN --> EB[Amazon EventBridge Rule: aegis-runtime-stream]
+        CFN --> SQS[Amazon SQS Queue: aegis-runtime-queue]
+        CFN --> Lambda[AWS Lambda Backend: Python 3.12<br/>FastAPI Orchestrator]
+        CFN --> APIGW[Amazon API Gateway HTTP API<br/>Cognito / IAM Auth]
+    end
+
+    subgraph AWS Managed Service Endpoints (PrivateLink)
+        Lambda -->|PrivateLink| VPCB[Bedrock VPC Endpoint]
+        Lambda -->|PrivateLink| VPCS3[S3 VPC Endpoint]
+        Lambda -->|PrivateLink| VPCDDB[DynamoDB VPC Endpoint]
+    end
 ```
 
 ---
 
-## 2. Customer Account Ownership & Data Sovereignty
+## 3. Scoped IAM Permissions & Principle of Least Privilege
 
-### Why In-Account Deployment Wins:
-1. **Zero Credential Sharing:** Customers never copy AWS Access Keys or Secret Keys into a third-party SaaS dashboard.
-2. **Zero Ingress / Firewall Holes:** The customer's infrastructure is inspected locally from within the AWS control plane using native Boto3 service clients.
-3. **Strict Compliance Alignment:** Meets SOC 2 Type II, HIPAA, and GDPR data sovereignty standards because customer network topologies and IAM policies never leave the customer's AWS boundary.
-4. **Zero Spend at Idle:** Lambda and S3 incur charges only when investigations run. Idle cost is less than **$0.50 per month**.
+AEGIS provisions a dedicated IAM execution role (`aegis-core-execution-role`) constrained by strict AWS managed policies:
+- `arn:aws:iam::aws:policy/SecurityAudit`: Read-only access to AWS security configurations across services.
+- `arn:aws:iam::aws:policy/ViewOnlyAccess`: Metadata visibility for compute, network, and storage.
+
+### Explicit Deny Safety Boundary:
+To guarantee environmental safety, the role includes an explicit Deny statement for high-risk and billable resource provisioning actions:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AegisDenyMutations",
+      "Effect": "Deny",
+      "Action": [
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
+        "s3:DeleteBucket",
+        "iam:CreateUser",
+        "iam:DeleteUser",
+        "rds:DeleteDBInstance"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
 
 ---
 
-## 3. Data Processing & Model Inference Boundaries
+## 4. Customer Onboarding & Setup Prerequisites
 
-```
-+-----------------------------------------------------------------------------------+
-| COMPONENT              | PHYSICAL RUNTIME LOCATION     | DATA RESIDENCY           |
-+------------------------+-------------------------------+--------------------------+
-| Telemetry Collectors   | Customer AWS Lambda           | 100% In-Account Memory   |
-| NetworkX Graph Engine  | Customer AWS Lambda           | 100% In-Account Memory   |
-| Attack Path BFS Tracer | Customer AWS Lambda           | 100% In-Account Memory   |
-| Context Gate Formula   | Customer AWS Lambda           | 100% In-Account Memory   |
-| Policy Arbitrator      | Customer AWS Lambda           | 100% In-Account Memory   |
-| Investigation Reports  | Customer S3 Bucket            | 100% In-Account S3       |
-| Web Console UI         | Customer S3 + CloudFront      | 100% Customer CloudFront |
-| Model Inference        | Amazon Bedrock (In-Region)    | In-Region AWS Boundary   |
-+-----------------------------------------------------------------------------------+
-```
+Onboarding AEGIS into an existing AWS account requires three straightforward steps:
 
-### What is Sent to Amazon Bedrock:
-- Natural language security questions (e.g. *"Why is this Bastion host exposed to the internet?"*).
-- Structural finding summaries (e.g. *"Resource: sg-bastion, Port: 22, Ingress: 0.0.0.0/0"*).
-- Abstract IaC diff blocks for natural language explanation and PR markdown formatting.
-
-### What is STRICTLY NEVER Sent:
-- S3 object contents or data records.
-- Database credentials, connection strings, or table rows.
-- IAM secret keys, session tokens, or private certificates.
-- Operating system memory, EC2 user-data, or raw file systems.
+1. **Prerequisite Check:**
+   - Active AWS Account with administrative permissions to deploy CloudFormation stacks.
+   - Amazon Bedrock model access enabled for Anthropic Claude 3.5 Sonnet in the target deployment region.
+2. **Stack Deployment:**
+   ```bash
+   aws cloudformation deploy \
+     --template-file deploy/aws/aegis_customer_deployable_stack.yml \
+     --stack-name aegis-devsecops-core \
+     --capabilities CAPABILITY_NAMED_IAM \
+     --parameter-overrides EnvironmentType=Production
+   ```
+3. **Web Console Connection:**
+   - The CloudFormation stack outputs the API Gateway endpoint and CloudFront URL.
+   - The customer logs in via enterprise SSO (Cognito/SAML) and initiates their first discovery harvest.

@@ -1,73 +1,55 @@
-# AEGIS — Enterprise System Architecture
-## Multi-Layer Autonomous DevSecOps Platform Specification
-
-**Document Version:** 3.0-PHASE-0  
-**Status:** Architecture Blueprint Approved  
+# ENTERPRISE SYSTEM ARCHITECTURE SPECIFICATION
+**Document ID:** `AEGIS-ARCH-005-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** System Architecture, Enterprise Integration, Network Topology, Component Mapping  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Unified 5-tier architecture; integrated AWS PrivateLink endpoints; mapped hybrid Lambda/Fargate execution; aligned with task-specific context completeness.
 
 ---
 
-## 1. High-Level Enterprise System Topology
+## 1. Executive Summary & System Topology
 
-AEGIS is structured into five distinct operational tiers:
+AEGIS is structured into 5 decoupled architectural tiers operating entirely within the customer's AWS account perimeter:
 
-```
-+-----------------------------------------------------------------------------------+
-| 1. INGESTION & TELEMETRY TIER                                                     |
-|    - AWS Boto3 Discovery Collectors (EC2, VPC, IAM, S3, RDS, EKS, CloudTrail)     |
-|    - AppSec & Source Code Ingestors (Git Repositories, Semgrep AST, Gitleaks)     |
-|    - Container & Registry Ingestors (Amazon ECR, Trivy Image Scanner, Syft SBOM)  |
-|    - CI/CD & Change Ingestors (Terraform Plan JSON, CloudFormation, GitHub PRs)   |
-|    - Runtime Threat Ingestors (Amazon GuardDuty, Security Hub Findings)           |
-+-----------------------------------------------------------------------------------+
-                                          │
-                                          ▼
-+-----------------------------------------------------------------------------------+
-| 2. KNOWLEDGE GRAPH & TELEMETRY FUSION TIER                                        |
-|    - In-Memory NetworkX MultiDiGraph (Nodes: Assets, Edges: Network/IAM/Flows)   |
-|    - Context Completeness Gate (Mathematical Score >= 0.85, Stale Telemetry Drop)|
-|    - Graph BFS Multi-Hop Attack Path Tracer (Internet Ingress -> Crown Jewels)    |
-|    - Blast Radius & Asset Criticality Weighting Engine                            |
-+-----------------------------------------------------------------------------------+
-                                          │
-                                          ▼
-+-----------------------------------------------------------------------------------+
-| 3. DETERMINISTIC POLICY & DECISION ARBITRATION TIER                               |
-|    - Rule Engine: SEC-NET-01, SEC-IAM-01, SEC-S3-01, SEC-APP-01, SEC-K8S-01      |
-|    - State Machine Decision Gate: BLOCK | INSUFFICIENT_CONTEXT | READY            |
-|    - Regulatory Compliance Mapper: CIS AWS v3.0, SOC 2 Type II, PCI-DSS, HIPAA   |
-|    - Immutable JSONL Audit Ledger with SHA-256 Record Signatures                  |
-+-----------------------------------------------------------------------------------+
-                                          │
-                                          ▼
-+-----------------------------------------------------------------------------------+
-| 4. AGENTIC REASONING & REMEDIATION TIER                                           |
-|    - Amazon Bedrock AgentCore Managed Harness (Claude 3.5 Sonnet / Haiku)         |
-|    - Strict Tool Allowlist Gateway (6 Read-Only Tools + Mode 2/3 Action Gates)    |
-|    - Prompt Injection Sanitization & Pre-Processor Quarantine Filter              |
-|    - Rule 14 Remediation Planner (Minimal Unified .patch, CLI Fixes, Rollbacks)   |
-+-----------------------------------------------------------------------------------+
-                                          │
-                                          ▼
-+-----------------------------------------------------------------------------------+
-| 5. CONTROL PLANE & INTERACTION TIER                                               |
-|    - In-Account Serverless FastAPI REST Engine (AWS Lambda + Function URL)        |
-|    - React 18 + Three.js 3D WebGL Spatial Explorer + Cytoscape 2D Schematic      |
-|    - Dual Audience Control Plane: Executive Business View vs SecOps Technical View |
-|    - CI/CD Gatekeeper CLI (`aegis_cli.py`) & GitHub PR Commenter Bot              |
-+-----------------------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    subgraph Tier 1: Presentation & Web Control Plane
+        Browser[Modern Web Browser / Engineer Workstation] -->|HTTPS TLS 1.3| S3Web[Amazon S3 Static Hosting + CloudFront CDN]
+        Browser -->|API Calls via Cognito JWT| APIGW[Amazon API Gateway HTTP API]
+    end
+
+    subgraph Tier 2: Orchestration & Ingress Gateway
+        APIGW --> AuthMiddleware[FastAPI Auth & RBAC Middleware]
+        AuthMiddleware --> TaskRouter{Workload Router}
+    end
+
+    subgraph Tier 3: Compute & Processing Core
+        TaskRouter -->|Lightweight / API| CoreLambda[AWS Lambda Orchestrator]
+        TaskRouter -->|Heavy Scan / Image Unpack| FargateWorker[Amazon ECS Fargate Ephemeral Tasks]
+        CoreLambda --> Harvesters[AWS Boto3 Harvesters: EC2, S3, IAM, EKS, RDS]
+        CoreLambda --> GraphEngine[In-Memory NetworkX Graph Builder]
+        CoreLambda --> Gatekeeper[Task-Specific Context Completeness Gate]
+        CoreLambda --> AttackPath[Deterministic BFS Attack Path Tracer]
+    end
+
+    subgraph Tier 4: Storage, Audit & State
+        CoreLambda --> DDB[(Amazon DynamoDB: Findings, Sessions, Remediations)]
+        CoreLambda --> S3State[(Amazon S3: Graph Snapshots & Evidence in Governance Mode)]
+        CoreLambda --> KMS[AWS KMS Customer Managed Key CMK]
+    end
+
+    subgraph Tier 5: AWS Managed Intelligence & Event Streaming
+        EventBridge[Amazon EventBridge] --> SQS[Amazon SQS Runtime Queue]
+        SQS --> CoreLambda
+        CoreLambda -->|PrivateLink VPC Endpoint| Bedrock[Amazon Bedrock Claude 3.5 Sonnet]
+    end
 ```
 
 ---
 
-## 2. In-Memory Graph Modeling vs. Database Selection (ADR-002)
+## 2. Architectural Tier Specifications
 
-| Criteria | In-Memory NetworkX MultiDiGraph (Selected) | Managed Neptune / Neo4j Graph DB |
-| :--- | :--- | :--- |
-| **Execution Latency** | **Sub-millisecond** (In-process memory pointer traversal). | 15–80ms network latency per Cypher/Gremlin query. |
-| **AWS Operating Cost** | **$0.00 / month** (Runs inside Lambda RAM). | $150 – $400 / month provisioned cluster cost. |
-| **Cold-Start Overhead**| Instantaneous initialization (< 5ms). | VPC peering, SSL connection pool, socket latency. |
-| **Data Boundary** | Ephemeral: destroyed with Lambda execution context. | Persistent storage requiring separate customer KMS. |
-| **Scalability** | Up to 100,000 nodes in 256MB RAM (ideal for single account).| Millions of nodes across entire multi-cloud orgs. |
-
-### Architectural Decision:
-For in-account customer deployment, **in-memory NetworkX MultiDiGraph** is selected. It completely eliminates managed database costs ($0.00 idle spend) while providing sub-25ms attack path BFS traversal. Snapshots are persisted ephemerally to customer S3 storage.
+1. **Tier 1 (Presentation):** React 18, TypeScript, Tailwind CSS, Cytoscape.js, Three.js WebGL explorer, packaged as static assets served securely over TLS 1.3.
+2. **Tier 2 (Gateway):** HTTP API Gateway with Cognito/SAML JWT validation, rate limiting, and RBAC authorization middleware enforcing 4 enterprise personas.
+3. **Tier 3 (Compute):** Serverless Lambda backend for continuous discovery, paired with on-demand ECS Fargate tasks for deep container image unpacking and monorepo AST scans.
+4. **Tier 4 (Persistence):** Customer-owned DynamoDB tables (pay-per-request) and KMS-encrypted S3 storage with Object Lock in Governance Mode for forensic evidence.
+5. **Tier 5 (Intelligence):** Direct PrivateLink integration to Amazon Bedrock for regional foundation model inference with zero prompt retention.

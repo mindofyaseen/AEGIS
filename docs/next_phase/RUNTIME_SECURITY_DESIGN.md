@@ -1,60 +1,62 @@
 # RUNTIME SECURITY & THREAT CORRELATION ARCHITECTURE
-**Document ID:** `AEGIS-ARCH-010`  
-**Domain:** Cloud Runtime Threat Detection, Amazon GuardDuty, AWS Security Hub, EventBridge Streaming  
-**Author:** Principal Enterprise Cloud Security Architect  
-**Status:** Architecture Blueprint / Discovery Phase  
+**Document ID:** `AEGIS-ARCH-010-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** Cloud Runtime Security, GuardDuty Runtime Monitoring, EventBridge Streaming, Threat Correlation  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Distinguishes passive finding ingestion from active GuardDuty Runtime Monitoring; establishes progressive 3-tier runtime maturity model; defines exact EventBridge filters and non-intrusive threat correlation rules.
 
 ---
 
 ## 1. Executive Summary & Core Objective
 
-Static infrastructure posture management (CSPM) reveals what *could* happen based on misconfigurations and attack paths. Runtime threat detection reveals what *is currently* happening based on behavioral anomalies, credential misuse, network telemetry, and active exploit attempts.
+Runtime security detects active attacks, behavioral anomalies, credential compromise, and data exfiltration as they occur. However, security platforms often blur the critical distinction between **passively ingesting security alerts** and **actively running host/kernel runtime agents**.
 
-AEGIS bridges static posture with live runtime detection by creating a **Unified Threat Correlation Engine**. Instead of forcing customers to deploy heavy, fragile eBPF or kernel-level host agents across hundreds of EC2 instances and EKS nodes, AEGIS adopts an **agentless, cloud-native runtime ingestion model** powered by Amazon GuardDuty, AWS Security Hub (ASFF), AWS CloudTrail, and Amazon EventBridge. 
-
-By mapping real-time runtime events onto the pre-computed NetworkX infrastructure graph, AEGIS immediately correlates an anomalous event (e.g. an API call from a Tor exit node) with static vulnerabilities (e.g. an overprivileged IAM role), dynamically escalating static findings to **Active Compromise (P0)** with exact blast radius and containment playbooks.
-
----
-
-## 2. Ingestion Architecture: Cloud-Native Streaming vs Host Agents
-
-### 2.1 The Host-Agent vs Agentless Architectural Trade-Off
-
-| Vector | In-Host Agent (Falco / Osquery) | Cloud-Native Agentless (GuardDuty / CloudTrail / EventBridge) | AEGIS Decision |
-| :--- | :--- | :--- | :--- |
-| **Customer Friction** | High (Requires kernel modules, AMI baking, DaemonSets, daemon maintenance) | Zero (API-driven, managed by AWS, operates out of the box) | **Adopt Agentless Primary** |
-| **Blast Radius / Risk** | Medium (Agent crash can impact production workloads) | Absolute Zero (Out-of-band monitoring) | **Agentless** |
-| **Coverage Scope** | Host OS & Linux syscalls only; blind to AWS control plane API misuse | 100% AWS Control Plane, VPC Flow Logs, DNS logs, S3 data events, EKS audit logs | **Agentless** |
-| **Cost** | Dedicated vCPU/RAM overhead on every EC2/EKS instance | Pay-per-event / managed AWS pricing (often covered by AWS enterprise agreements) | **Agentless** |
-| **Latency** | Sub-second (syscall level) | GuardDuty (approx 5-15 min latency for complex ML; EventBridge sub-second for CloudTrail) | **Hybrid Ingestion** |
-
-**Conclusion (ADR-003):** AEGIS implements an agentless runtime architecture as its default Tier 1 engine, with optional webhook endpoints for customers already running Falco or Sysdig.
+This specification defines AEGIS's **Progressive 3-Tier Runtime Architecture**:
+- **Tier 1 (Finding Ingestion - Default):** Ingests existing Amazon GuardDuty, AWS Security Hub, and CloudTrail findings via Amazon EventBridge and SQS. Zero agents, zero host modifications, 100% cloud-native.
+- **Tier 2 (AWS-Managed Runtime Monitoring - Customer Opt-In):** Configures and monitors AWS GuardDuty Runtime Monitoring for EKS, ECS Fargate, and EC2. Leverages AWS-managed security agents rather than custom 3rd-party kernel daemons.
+- **Tier 3 (Active Threat Containment - Controlled Operations):** Executes targeted containment playbooks (e.g., isolating an EC2 instance or revoking compromised temporary credentials) only after human authorization.
 
 ---
 
-## 3. Real-Time Streaming Pipeline
+## 2. Progressive 3-Tier Runtime Maturity Model
 
 ```mermaid
-flowchart LR
-    subgraph Customer AWS Account
-        GD[Amazon GuardDuty] -->|GuardDuty Finding| EB[Amazon EventBridge]
-        CT[AWS CloudTrail] -->|Management & Data Events| EB
-        SH[AWS Security Hub] -->|ASFF Security Findings| EB
-        
-        EB -->|Event Rule Filter: aegis-runtime-filter| SQS[Amazon SQS: aegis-runtime-queue]
+flowchart TD
+    subgraph Tier 1: Passive Ingestion (Default Out-of-the-Box)
+        GD[Amazon GuardDuty Findings] --> EB[Amazon EventBridge]
+        SH[AWS Security Hub ASFF] --> EB
+        CT[CloudTrail High-Risk Events] --> EB
+        EB --> SQS[AEGIS Runtime SQS Queue]
+        SQS --> Correlator[Graph Threat Correlator]
     end
 
-    subgraph AEGIS Processing Core
-        SQS -->|Batch Poll 10 msgs| Dispatcher[Runtime Event Dispatcher]
-        Dispatcher -->|Event De-duplication & Normalization| Correlator[Graph Threat Correlator]
-        Correlator -->|Node Lookup| Graph[(In-Memory NetworkX Topology)]
-        Correlator -->|Active Threat Elevation| StateMachine[Dual-Engine Arbiter]
-        StateMachine -->|P0 Critical Alert| Webhook[Slack / PagerDuty / Web Console]
+    subgraph Tier 2: AWS Managed Runtime Monitoring (Customer Opt-In)
+        EKS_RM[GuardDuty EKS Runtime Monitoring] -.->|AWS Managed DaemonSet| GD
+        ECS_RM[GuardDuty ECS Runtime Monitoring] -.->|AWS Fargate Sidecar| GD
+        EC2_RM[GuardDuty EC2 Runtime Monitoring] -.->|AWS SSM Managed Agent| GD
+    end
+
+    subgraph Tier 3: Controlled Active Containment (Human-in-the-Loop)
+        Correlator -->|P0 Critical Alert| StateMachine[Dual-Engine Arbiter]
+        StateMachine -->|Mode 2 Approval Request| Approver[Security Analyst Sign-Off]
+        Approver -->|Approved Action| Containment[Execute Containment Playbook]
     end
 ```
 
-### 3.1 EventBridge Rule Configuration
-The AEGIS deployment CloudFormation template provisions an EventBridge rule that filters security-relevant events:
+### 2.1 Critical Distinction: Ingestion vs Monitoring vs Containment
+
+| Capability | What It Actually Does | Prerequisites & Customer Impact | AEGIS Phase |
+| :--- | :--- | :--- | :--- |
+| **1. Security Finding Ingestion** | Reads existing alerts generated by customer's active GuardDuty or Security Hub. | EventBridge Rule + SQS. **Zero customer friction, zero host impact.** | **Phase 1 (Core)** |
+| **2. GuardDuty Runtime Monitoring** | Uses AWS-managed eBPF agent/sensor on EC2, EKS, or ECS to detect fileless malware, reverse shells, and crypto-miners. | Customer enables feature in AWS console; AWS deploys managed agents. | **Phase 2 (Opt-In)** |
+| **3. 3rd-Party Host Agents (Falco/Sysdig)** | Installs third-party daemonsets/kernel modules in customer clusters/nodes. | High friction, maintenance overhead, kernel compatibility risks. | **Deferred / Webhook Only** |
+| **4. Active Runtime Containment** | Automatically terminates processes, alters firewall rules, or revokes keys. | Dangerous if automated naively. Must be strictly gated by human approval. | **Phase 4 (Mode 2/3)** |
+
+---
+
+## 3. Tier 1: Real-Time EventBridge Streaming Pipeline
+
+The customer CloudFormation stack provisions an EventBridge rule capturing security findings:
+
 ```yaml
 # deploy/aws/aegis_runtime_eventbridge.yml
 Resources:
@@ -62,7 +64,7 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Name: aegis-security-runtime-stream
-      Description: Captures GuardDuty findings and high-risk CloudTrail events for AEGIS
+      Description: Ingests GuardDuty findings and high-risk CloudTrail security events for AEGIS
       EventPattern:
         source:
           - "aws.guardduty"
@@ -75,33 +77,20 @@ Resources:
           Id: "AegisSQSTarget"
 ```
 
----
-
-## 4. GuardDuty Finding Taxonomy & Mapping
-
-AEGIS ingests and maps all major GuardDuty finding classes directly into graph nodes:
-
-1. **IAM & Credential Exfiltration**:
-   - `UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS`: Temporary EC2 instance profile credentials used from an external IP address.
-   - `PrivilegeEscalation:IAMUser/AdministrativePermissions`: IAM entity modified its own permissions to gain admin rights.
-   - `Stealth:IAMUser/CloudTrailLoggingDisabled`: Attacker attempting to evade detection.
-2. **Compute & Container Attacks**:
-   - `CryptoCurrency:EC2/BitcoinTool.B!DNS`: Instance querying known crypto-mining pools.
-   - `Execution:EC2/SuspiciousCommand`: Suspicious reverse-shell or payload executed.
-   - `PrivilegeEscalation:Kubernetes/PrivilegedContainer`: Container launched with root breakout privileges.
-3. **Storage & Data Theft**:
-   - `Exfiltration:S3/AnomalousVolume`: Mass download from sensitive S3 buckets from unrecognized location.
-   - `Discovery:S3/MaliciousIPCaller`: Reconnaissance against private S3 buckets.
+### Ingested GuardDuty Finding Classes:
+- **IAM & Credential Theft:** `UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS`, `PrivilegeEscalation:IAMUser/AdministrativePermissions`.
+- **Compute & Workload Anomaly:** `CryptoCurrency:EC2/BitcoinTool.B!DNS`, `Execution:EC2/SuspiciousCommand`, `PrivilegeEscalation:Kubernetes/PrivilegedContainer`.
+- **Data Exfiltration:** `Exfiltration:S3/AnomalousVolume`, `Discovery:S3/MaliciousIPCaller`.
 
 ---
 
-## 5. Dynamic Severity Elevation Logic
+## 4. Graph-Augmented Threat Correlation Engine
 
-A standalone GuardDuty finding is often noisy. A static CSPM misconfiguration is often deprioritized as "theoretical". When AEGIS unites them, threat confidence reaches 99.9%.
+A standalone alert is often noisy. A static posture misconfiguration is often deprioritized. AEGIS unites both:
 
-$$\text{Threat Priority Score} = \text{Base Severity}(\text{Finding}) \times (1 + \text{Centrality}(\text{Graph Node})) \times \text{Exposure Multiplier}$$
+$$\text{Threat Priority} = f(\text{Finding Severity}, \text{Node Graph Centrality}, \text{Verified Ingress Exposure}, \text{Crown Jewel Proximity})$$
 
-### Elevation Rules:
-- **Rule 1 (Exposed Node Active Exploit)**: If an EC2 instance or Pod has a known vulnerability or public ingress AND GuardDuty fires `UnauthorizedAccess:EC2/SSHBruteForce` or `Execution:EC2/MaliciousFile` $\rightarrow$ Elevate to **P0 Critical Active Breach**.
-- **Rule 2 (Credential Exfiltration on Attack Path)**: If an IAM Role on a pre-identified Critical Attack Path generates `InstanceCredentialExfiltration.OutsideAWS` $\rightarrow$ Elevate to **P0 Critical** and trigger immediate Emergency Containment SOP.
-- **Rule 3 (Data Exfiltration from Crown Jewel)**: If an S3 bucket classified as Crown Jewel receives high-volume `GetObject` from an untrusted ASN $\rightarrow$ Trigger automated bucket isolation proposal.
+### Concrete Elevation Rules:
+1. **Rule 1 (Exposed Compute + Anomaly):** If an EC2 instance or EKS Pod with verified public internet ingress generates an execution anomaly finding $\rightarrow$ Elevate to **P0 Critical Active Breach**.
+2. **Rule 2 (Attack Path Credential Theft):** If an IAM Role situated along a computed attack path generates `InstanceCredentialExfiltration.OutsideAWS` $\rightarrow$ Elevate to **P0 Critical** and stage an emergency credential invalidation playbook.
+3. **Rule 3 (Crown Jewel Reconnaissance):** If an S3 bucket or RDS instance classified as a Crown Jewel receives reconnaissance queries from an untrusted ASN $\rightarrow$ Trigger automated containment proposal.

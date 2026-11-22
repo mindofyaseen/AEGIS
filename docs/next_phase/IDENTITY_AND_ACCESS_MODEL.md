@@ -1,115 +1,52 @@
-# IDENTITY, ACCESS & MULTI-TENANCY MODEL SPECIFICATION
-**Document ID:** `AEGIS-ARCH-014`  
-**Domain:** Identity Federation, Role-Based Access Control (RBAC), Multi-Account STS, Tenant Isolation  
-**Author:** Principal Enterprise Cloud Security Architect  
-**Status:** Architecture Blueprint / Discovery Phase  
+# IDENTITY, ACCESS & GOVERNANCE MODEL SPECIFICATION
+**Document ID:** `AEGIS-ARCH-014-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** Identity Federation, AWS IAM Identity Center, Cognito, RBAC, Single-Account Simplicity  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Prioritized effortless single-account onboarding; evaluated AWS IAM Identity Center vs Amazon Cognito; established separation of duties across 4 enterprise RBAC personas.
 
 ---
 
 ## 1. Executive Summary & Core Objective
 
-In an enterprise environment, security tools must themselves be zero-trust and securely partitioned. An autonomous platform capable of analyzing cloud vulnerabilities and proposing infrastructure modifications must implement rigorous authentication, fine-grained Role-Based Access Control (RBAC), and cryptographically verified audit trails.
+Enterprise identity must balance security with operational simplicity. For an initial deployment, customer onboarding must be effortless—requiring zero complex cross-account configurations. As the organization expands, the platform must seamlessly federate with corporate identity providers (IdPs).
 
-AEGIS establishes an **Enterprise Identity & Multi-Account Access Model** designed for both single-account customer deployments and multi-account AWS Organizations. It supports enterprise Single Sign-On (SSO) via SAML 2.0 and OIDC (Okta, Azure AD, AWS IAM Identity Center), enforces 4 distinct internal RBAC personas, and leverages short-lived AWS STS AssumeRole delegation for multi-account infrastructure harvesting.
-
----
-
-## 2. Authentication & Enterprise Identity Federation
-
-```mermaid
-flowchart LR
-    subgraph Enterprise IdP
-        Okta[Okta / Azure AD / PingFederate] -->|SAML 2.0 / OIDC| Cognito[Amazon Cognito User Pool]
-        IdCenter[AWS IAM Identity Center] -->|OIDC Federation| Cognito
-    end
-
-    subgraph AEGIS Authentication Gateway
-        Cognito -->|Issues JWT Bearer Token| APIGW[AEGIS API Gateway / FastAPI]
-        APIGW -->|Validates JWT Signature & Claims| RBAC[AEGIS RBAC Policy Engine]
-    end
-
-    subgraph Internal AEGIS Personas
-        RBAC -->|claim: role=viewer| P1[Viewer / ReadOnly]
-        RBAC -->|claim: role=analyst| P2[Security Analyst]
-        RBAC -->|claim: role=approver| P3[Remediation Approver]
-        RBAC -->|claim: role=admin| P4[Platform Administrator]
-    end
-```
-
-### 2.1 Token Validation & Scope Verification
-- Every incoming HTTP request must include an `Authorization: Bearer <JWT>` header issued by the customer's Amazon Cognito User Pool.
-- The FastAPI middleware (`backend/api/auth.py`) cryptographically validates the token against Cognito's JSON Web Key Set (JWKS), verifying signature, expiration (`exp`), issuer (`iss`), and required customer tenant ID.
+This specification details the **Enterprise Identity & Access Architecture**, comparing AWS IAM Identity Center with Amazon Cognito, and enforcing strict separation of duties across 4 RBAC roles.
 
 ---
 
-## 3. Fine-Grained Role-Based Access Control (RBAC) Matrix
+## 2. Customer Identity Federation: Cognito vs AWS IAM Identity Center
 
-| Persona | View Posture & Topology | Run Scans & Bedrock Queries | Approve Mode 2 Remediations | Configure Mode 3 Self-Healing | Manage Cloud Accounts & API Keys |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Viewer** | ✅ Read-Only | ❌ Prohibited | ❌ Prohibited | ❌ Prohibited | ❌ Prohibited |
-| **Security Analyst** | ✅ Read-Only | ✅ Full Access | ❌ Prohibited | ❌ Prohibited | ❌ Prohibited |
-| **Remediation Approver** | ✅ Read-Only | ✅ Full Access | ✅ Cryptographic Approval | ❌ Prohibited | ❌ Prohibited |
-| **Platform Administrator** | ✅ Full Access | ✅ Full Access | ✅ Cryptographic Approval | ✅ Full Configuration | ✅ Full Management |
+| Dimension | Amazon Cognito User Pools | AWS IAM Identity Center (Formerly AWS SSO) | AEGIS Strategy |
+| :--- | :--- | :--- | :--- |
+| **Target Audience** | Web application users, external partners, customer engineers | Enterprise employees, AWS administrators, internal DevOps | **Hybrid Federation Supported** |
+| **SAML 2.0 / OIDC** | Supports Okta, Azure AD, Google Workspace, PingFederate | Native integration with corporate Active Directory / Okta | **Cognito Default / IAM Identity Center Opt-In** |
+| **Single-Account Onboarding** | Provisions automatically in CloudFormation with zero external setup | Requires AWS Organizations and management account enablement | **Cognito Default for Zero-Friction Setup** |
+| **M2M API Authentication** | Native OAuth2 client credentials grant | Requires IAM roles / STS federation | **Cognito for CI/CD API Keys** |
+
+### Initial Release Recommendation:
+AEGIS deploys an **Amazon Cognito User Pool** by default inside the CloudFormation stack. Customers can log in using local credentials or connect their corporate SAML/OIDC provider (Okta/Azure AD) in under 10 minutes.
 
 ---
 
-## 4. Multi-Account Harvesting Architecture (AWS Organizations)
+## 3. Role-Based Access Control (RBAC) & Separation of Duties
 
-For enterprises operating dozens or hundreds of AWS accounts under AWS Organizations, AEGIS employs a **Hub-and-Spoke STS AssumeRole Architecture**.
+AEGIS enforces 4 distinct enterprise personas via JWT claim inspection:
 
 ```mermaid
 flowchart TD
-    subgraph Hub Account (Security Tooling / 111111111111)
-        AEGIS[AEGIS In-Account Deployment]
-        HubRole[aegis-hub-orchestrator-role]
-    end
+    Token[Cognito JWT Bearer Token] --> Extract[Extract custom:role Claim]
+    
+    Extract -->|role: viewer| R1[1. Viewer / Read-Only]
+    Extract -->|role: analyst| R2[2. Security Analyst]
+    Extract -->|role: approver| R3[3. Remediation Approver]
+    Extract -->|role: admin| R4[4. Platform Administrator]
 
-    subgraph Spoke Account 1 (Production Workloads / 222222222222)
-        SpokeRole1[aegis-cross-account-auditor-role]
-        Workloads1[(Prod EKS, RDS, S3)]
-    end
-
-    subgraph Spoke Account 2 (Staging Workloads / 333333333333)
-        SpokeRole2[aegis-cross-account-auditor-role]
-        Workloads2[(Staging EC2, VPC, ECR)]
-    end
-
-    AEGIS --> HubRole
-    HubRole -->|sts:AssumeRole with ExternalId| SpokeRole1
-    HubRole -->|sts:AssumeRole with ExternalId| SpokeRole2
-    SpokeRole1 --> Workloads1
-    SpokeRole2 --> Workloads2
+    R1 --> P1[View Overview, Topology, CIS Findings, Reports]
+    R2 --> P2[P1 + Run Scans, Query Bedrock Agent, Trigger Investigations]
+    R3 --> P3[P2 + Cryptographically Authorize Mode 2 Remediations]
+    R4 --> P4[P3 + Manage API Keys, Cloud Connections, Policies, Users]
 ```
 
-### 4.1 Cross-Account IAM Security Best Practices
-1. **ExternalId Requirement**: To prevent the confused deputy problem, every cross-account AssumeRole call requires a customer-configured cryptographic `ExternalId`.
-2. **Short Session Durations**: STS sessions are requested with a maximum lifetime of 900 seconds (15 minutes).
-3. **Scoped Trust Policies**: The spoke account IAM role trust policy restricts access strictly to the Hub account's orchestrator role ARN:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::111111111111:role/aegis-hub-orchestrator-role"
-      },
-      "Action": "sts:AssumeRole",
-      "Condition": {
-        "StringEquals": {
-          "sts:ExternalId": "c8a4f910-b452-4e3a-92a1-e374bb9f8a20"
-        }
-      }
-    }
-  ]
-}
-```
-
----
-
-## 5. Machine-to-Machine (M2M) API Token Management
-
-For CI/CD pipelines (GitHub Actions, GitLab CI) and SIEM integrations, AEGIS issues scoped M2M API keys:
-- Keys are prefixed with `aegis_live_` followed by 32 cryptographically random alphanumeric characters.
-- In the AEGIS database, keys are **never stored in plaintext**; only their `SHA-256` digest is stored.
-- Each key is assigned a strict scope (e.g. `cicd:scan_only`), an expiration date, and IP CIDR allowlist restrictions.
+### Permission Enforcement Rules:
+- **Separation of Duties:** A user holding the `Security Analyst` role can *generate* a remediation change plan, but **cannot approve it**. Approval strictly requires the `Remediation Approver` role.
+- **Audit Ledger:** Every role transition, scan execution, and remediation approval is recorded in the immutable audit log with user identity, timestamp, and client IP.

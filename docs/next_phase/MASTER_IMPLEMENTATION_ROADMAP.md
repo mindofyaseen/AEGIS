@@ -1,101 +1,75 @@
-# MASTER IMPLEMENTATION ROADMAP (WORKSTREAMS A - L)
-**Document ID:** `AEGIS-ARCH-021`  
-**Domain:** Engineering Roadmap, Workstream Breakdown, Sprint Sequencing, Complexity Estimation  
-**Author:** Principal Product Architect & Engineering Program Manager  
-**Status:** Architecture Blueprint / Discovery Phase  
+# MASTER IMPLEMENTATION ROADMAP — PHASE 0.5 REVISED
+**Document ID:** `AEGIS-ARCH-021-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** Engineering Roadmap, Workstream Resequencing, Critical Path, Milestone Definitions  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Completely restructured workstream sequence; moved foundational testing (K), identity/RBAC (I), and UI baseline (J) to early sprints; aligned autonomous remediation (H) after forensics and mature governance.
 
 ---
 
-## 1. Executive Summary & Core Objective
+## 1. Executive Summary & Resequencing Rationale
 
-Transitioning AEGIS from its current solid foundation (94 passing tests, in-memory graph, attack path tracer, IaC parser, Bedrock harness) into a complete, customer-deployable enterprise DevSecOps engineering solution requires structured program execution.
+The previous linear roadmap postponed foundational identity (I), testing (K), and dashboard architecture (J) until late sprints, creating severe integration risks. 
 
-This document details the **Master Engineering Roadmap** organized into **12 discrete workstreams (A through L)** across a phased timeline. Each workstream defines concrete deliverables, dependency sequencing, and story-point / T-shirt sizing.
+This revised roadmap establishes a **Foundation-First Sequencing Model** across 4 structured phases:
+- **Phase 1: Foundations & Control Plane (Sprints 1–2):** Workstreams A (Packaging), I (Identity/RBAC), K (Testing Sandbox), and J (UI Baseline).
+- **Phase 2: Core Security Engines (Sprints 3–4):** Workstreams B (AppSec), C (Containers), and E (Runtime Threat Ingestion).
+- **Phase 3: Advanced Delivery & Forensics (Sprints 5–6):** Workstreams D (Kubernetes), F (CI/CD Gatekeeper), and G (AI Forensics).
+- **Phase 4: Remediation & Launch (Sprints 7–8):** Workstreams H (Remediation Modes 1–3) and L (Release & Documentation).
 
 ---
 
-## 2. Workstream Breakdown (A through L)
+## 2. Master Resequenced Workstream Schedule
 
 ```mermaid
 gantt
-    title AEGIS Enterprise Implementation Roadmap
+    title AEGIS Master Implementation Roadmap (Phase 0.5 Revised)
     dateFormat  YYYY-MM-DD
-    section Core & Packaging
-    Workstream A: In-Account Packaging & Serverless Core :a1, 2026-12-01, 14d
-    section Security Expansion
-    Workstream B: AppSec Engine (SAST, SCA, Secrets)     :b1, 2026-12-08, 14d
-    Workstream C: Container & ECR Security Engine        :c1, 2026-12-15, 14d
-    Workstream D: Kubernetes & EKS Posture Engine        :d1, 2026-12-22, 14d
-    Workstream E: Runtime GuardDuty & Threat Stream       :e1, 2026-12-29, 14d
-    section Delivery & Ops
-    Workstream F: CI/CD Gatekeeper (GitHub/GitLab)       :f1, 2027-01-05, 14d
-    Workstream G: AI Incident Response & CloudTrail       :g1, 2027-01-12, 14d
-    Workstream H: Autonomous Remediation (Modes 1,2,3)   :h1, 2027-01-19, 14d
-    section Enterprise Governance
-    Workstream I: Enterprise Identity, SAML & RBAC       :i1, 2027-01-26, 14d
-    Workstream J: Frontend Unified UX & 3D Topology      :j1, 2027-02-02, 14d
-    Workstream K: Disposable AWS Test Lab & E2E Harness  :k1, 2027-02-09, 10d
-    Workstream L: Documentation, Whitepaper & Launch Kit :l1, 2027-02-16, 10d
+    
+    section Phase 1: Foundations
+    Workstream A: In-Account Serverless Packaging       :a1, 2026-12-01, 14d
+    Workstream I: Enterprise Identity & RBAC Baseline   :i1, 2026-12-01, 14d
+    Workstream K: Disposable Test Lab & Testing Harness :k1, 2026-12-08, 14d
+    Workstream J: Unified UX Architecture & Baseline    :j1, 2026-12-08, 14d
+
+    section Phase 2: Core Engines
+    Workstream B: Application Security Engine (AppSec)  :b1, 2026-12-22, 14d
+    Workstream C: Container & ECR Security Engine       :c1, 2026-12-22, 14d
+    Workstream E: Runtime Security & Event Streaming    :e1, 2027-01-05, 14d
+
+    section Phase 3: Advanced Systems
+    Workstream D: Kubernetes & EKS Security Posture     :d1, 2027-01-12, 14d
+    Workstream F: CI/CD Pipeline Gatekeeper (GitHub)    :f1, 2027-01-19, 14d
+    Workstream G: AI Forensics & CloudTrail Correlation :g1, 2027-01-26, 14d
+
+    section Phase 4: Remediation & Release
+    Workstream H: Autonomous Remediation (Modes 1,2,3)  :h1, 2027-02-09, 14d
+    Workstream L: Enterprise Launch Kit & Whitepaper    :l1, 2027-02-16, 10d
 ```
 
-### Detailed Workstream Specifications:
+---
 
-#### Workstream A: In-Account Packaging & Serverless Core
-- **Deliverables**: Self-contained CloudFormation stack (`deploy/aws/aegis_customer_deployable_stack.yml`), Terraform module (`deploy/terraform/aegis-in-account`), Lambda packaging scripts with layer optimization, DynamoDB state tables.
-- **Complexity**: Medium (8 Story Points / 1.5 Weeks).
-- **Dependencies**: None.
+## 3. Phase-by-Phase Deliverables & Exit Criteria
 
-#### Workstream B: Application Security Engine (AppSec)
-- **Deliverables**: Ephemeral Semgrep CLI runner (`services/appsec/sast_runner.py`), Grype SCA scanner (`services/appsec/sca_runner.py`), Gitleaks secret scanner (`services/appsec/secrets_runner.py`), Syft SBOM generator, zero-persistence cleanup guarantee.
-- **Complexity**: Large (13 Story Points / 2 Weeks).
-- **Dependencies**: Workstream A.
+### Phase 1: Foundations & Control Plane (Weeks 1–3)
+- **Workstream A:** CloudFormation in-account template (`aegis_customer_deployable_stack.yml`), scoped IAM role, DynamoDB state tables.
+- **Workstream I:** Cognito User Pool deployment, FastAPI JWT verification middleware, 4 RBAC personas.
+- **Workstream K:** Disposable test lab Terraform module, auto-shutdown Lambda cron, Moto/LocalStack test suite.
+- **Workstream J:** Unified dashboard layout linking Workspaces 1, 2, 3, and 11 to live backend harvesters.
+- **Exit Criteria:** Clean in-account deployment; zero-cost local test suite passing; live test lab validation completed under \$0.50.
 
-#### Workstream C: Container & ECR Security Engine
-- **Deliverables**: Amazon ECR repository discovery (`services/discovery/aws/ecr_harvester.py`), Trivy container image vulnerability scanner wrapper, Dockerfile AST misconfiguration inspector, image digest verification.
-- **Complexity**: Medium (8 Story Points / 1.5 Weeks).
-- **Dependencies**: Workstream A.
+### Phase 2: Core Security Engines (Weeks 4–6)
+- **Workstream B:** Ephemeral Semgrep and Gitleaks runners; CycloneDX SBOM generator via Syft.
+- **Workstream C:** Amazon ECR image harvester; ephemeral Fargate Trivy scanner; Dockerfile AST auditor.
+- **Workstream E:** EventBridge security finding ingestion rule; SQS batch processor; threat elevation algorithm.
+- **Exit Criteria:** AppSec and Container finding schemas unified in DynamoDB; EventBridge ingestion verified against test findings.
 
-#### Workstream D: Kubernetes & EKS Posture Engine (KSPM)
-- **Deliverables**: EKS cluster and nodegroup harvester (`services/discovery/aws/eks_harvester.py`), ephemeral Kubernetes API client with IRSA auth, Pod Security Standard evaluator, RBAC overprivilege analyzer, K8s-to-AWS lateral attack path rules.
-- **Complexity**: Large (13 Story Points / 2 Weeks).
-- **Dependencies**: Workstream A, Workstream C.
+### Phase 3: Advanced Systems & Delivery (Weeks 7–9)
+- **Workstream D:** EKS Access Entry integration; read-only `ClusterRole` binding; PSS audit engine.
+- **Workstream F:** Official GitHub Action (`action.yml`) with AWS OIDC authentication; PR comment bot with rich diffs.
+- **Workstream G:** CloudTrail Athena query partitioner; chronological timeline correlator; blast radius graph calculator.
+- **Exit Criteria:** EKS cluster inspected without admin credentials; PR gatekeeper executes in $<45\text{s}$; CloudTrail forensics reconstructs incident timeline.
 
-#### Workstream E: Runtime Security & Threat Stream Ingestion
-- **Deliverables**: Amazon EventBridge rule definitions, SQS batch event consumer (`services/runtime/event_dispatcher.py`), GuardDuty finding mapper, Security Hub ASFF ingester, dynamic threat priority elevation algorithm.
-- **Complexity**: Large (13 Story Points / 2 Weeks).
-- **Dependencies**: Workstream A.
-
-#### Workstream F: CI/CD Pipeline Gatekeeper
-- **Deliverables**: Official GitHub Action (`.github/actions/aegis-gatekeeper/action.yml`), GitLab CI template (`deploy/cicd/.gitlab-ci.yml`), PR inline comment bot with rich diffs, exit-code policy engine (`PASS/WARN/BLOCK`).
-- **Complexity**: Medium (8 Story Points / 1.5 Weeks).
-- **Dependencies**: Workstream B, Workstream C.
-
-#### Workstream G: AI Incident Response & CloudTrail Forensics
-- **Deliverables**: CloudTrail Athena query engine and Boto3 `LookupEvents` optimizer (`services/forensics/cloudtrail_engine.py`), chronological event correlator, mathematical blast radius traversal, automated containment SOP generator.
-- **Complexity**: Large (13 Story Points / 2 Weeks).
-- **Dependencies**: Workstream E.
-
-#### Workstream H: Autonomous Remediation Engine (Modes 1, 2, 3)
-- **Deliverables**: Remediation state machine, DynamoDB atomic transaction manager, Mode 1 IaC generator, Mode 2 PR/ChangeSet creator with Slack webhook approval, Mode 3 safe auto-healer with blast radius circuit breaker, automated dry-run and rollback runbooks.
-- **Complexity**: Epic (21 Story Points / 3 Weeks).
-- **Dependencies**: Workstream A, Workstream G.
-
-#### Workstream I: Enterprise Identity, SAML & RBAC
-- **Deliverables**: Amazon Cognito User Pool integration with SAML 2.0 / OIDC federation, FastAPI JWT verification middleware, 4 RBAC personas (Viewer, Analyst, Approver, Admin), Multi-Account STS AssumeRole harvester.
-- **Complexity**: Medium (8 Story Points / 1.5 Weeks).
-- **Dependencies**: Workstream A.
-
-#### Workstream J: Frontend Unified UX & 3D Topology
-- **Deliverables**: Unified information architecture layout across 11 workspaces, high-density virtualized findings table, 3D WebGL (Three.js) infrastructure topology view, dark-first enterprise design system, sub-100ms client search.
-- **Complexity**: Large (13 Story Points / 2 Weeks).
-- **Dependencies**: Workstream A through H.
-
-#### Workstream K: Disposable AWS Test Lab & E2E Validation Harness
-- **Deliverables**: Terraform test lab module (`deploy/testlab/`), planted security vulnerabilities fixture (EC2, S3, RDS, IAM, ECR), automated budget alarm ($5 limit), automated teardown script, Category 1-12 validation test suite.
-- **Complexity**: Medium (8 Story Points / 1.5 Weeks).
-- **Dependencies**: Workstream A, Workstream H.
-
-#### Workstream L: Documentation, Whitepaper & Launch Kit
-- **Deliverables**: Enterprise deployment guide, CISO whitepaper, security architecture reference, customer quick-start walkthrough, API reference.
-- **Complexity**: Small (5 Story Points / 1 Week).
-- **Dependencies**: All preceding workstreams.
+### Phase 4: Remediation & Launch (Weeks 10–12)
+- **Workstream H:** Remediation state machine; Mode 1 IaC diff generator; Mode 2 human approval workflow with Slack webhook; Mode 3 allowlisted safe auto-healer; compensation action runbooks.
+- **Workstream L:** Enterprise deployment whitepaper, CISO architecture documentation, API reference.
+- **Exit Criteria:** Mode 2 remediation approved and verified on testbed; rollback compensation runbook proven; production launch kit signed off.

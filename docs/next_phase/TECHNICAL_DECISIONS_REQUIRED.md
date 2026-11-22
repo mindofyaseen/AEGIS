@@ -1,93 +1,58 @@
-# ARCHITECTURAL DECISION REGISTRY (ADRs) & SIGN-OFF
-**Document ID:** `AEGIS-ARCH-022`  
-**Domain:** Architecture Decision Records (ADRs), Technical Trade-Offs, Executive Founder Sign-Off  
-**Author:** Principal Product Architect & Enterprise Cloud Security Architect  
-**Status:** Architecture Blueprint / Discovery Phase  
+# ARCHITECTURAL DECISION REGISTRY (ADRs) — PHASE 0.5 REVISED
+**Document ID:** `AEGIS-ARCH-022-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** Architectural Decision Records (ADRs), Trade-Offs, Formal Status Classification  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Re-evaluated all 7 ADRs; added formal statuses; explicitly identified unresolved questions and founder approvals required.
 
 ---
 
-## 1. Executive Summary & Purpose
+## 1. Formal ADR Evaluation Matrix
 
-Architectural clarity requires documenting not just *what* will be built, but *why* specific technical alternatives were selected or rejected. This registry captures the seven pivotal Architectural Decision Records (ADRs) that define the next generation of AEGIS.
-
-Each ADR details the business context, decision drivers, considered options, chosen direction, and trade-offs. These decisions establish the engineering baseline for Phase 1 implementation.
+| ADR # | Architectural Topic | Options Considered | Recommended Decision | Formal Status |
+| :---: | :--- | :--- | :--- | :--- |
+| **ADR-001** | Compute Hosting Architecture | Dedicated EKS vs ECS Fargate vs Serverless Lambda + Fargate | **Hybrid: Serverless Lambda Core + Ephemeral Fargate Tasks** | **RECOMMENDED** |
+| **ADR-002** | Infrastructure Graph Storage | Amazon Neptune vs Neo4j vs In-Memory NetworkX + S3 | **In-Memory NetworkX + S3 Compressed Snapshots** | **RECOMMENDED** |
+| **ADR-003** | Runtime Threat Strategy | Host eBPF Agent vs Agentless CloudTrail/GuardDuty Ingestion | **Progressive: EventBridge Ingestion (Tier 1) -> GuardDuty RM (Tier 2)** | **CONDITIONALLY_APPROVED** |
+| **ADR-004** | Bedrock Inference Flow | SaaS Central Relay vs Direct In-Account Bedrock Inference | **Direct In-Account Bedrock via AWS PrivateLink** | **RECOMMENDED** |
+| **ADR-005** | Autonomous Remediation Model | Default Auto-Remediation vs Progressive 3-Tier Guardrails | **Progressive: Mode 1 Default -> Mode 2 Approved -> Mode 3 Opt-In** | **REQUIRES_FOUNDER_DECISION** |
+| **ADR-006** | Scanner Isolation & Licensing | Embedded Python vs Ephemeral Fargate Subprocess | **Ephemeral Fargate Tasks with Pipe JSON Streaming (LGPL Safe)** | **RECOMMENDED** |
+| **ADR-007** | Customer Deployment Scope | Multi-Account Org Stack vs Single-Account Primary Deployment | **Single-Account Core First; Hub-and-Spoke STS as Enterprise Addon** | **RECOMMENDED** |
 
 ---
 
-## 2. Architectural Decision Records (ADR 001 - 007)
+## 2. Detailed ADR Specifications
 
 ### ADR-001: Compute Hosting Architecture
-- **Status:** APPROVED
-- **Context:** AEGIS must be deployed directly into customer AWS accounts with minimal operational overhead and zero unnecessary cloud spend.
-- **Considered Options:**
-  1. Dedicated Amazon EKS Kubernetes Cluster.
-  2. Always-on Amazon ECS Fargate Fleet.
-  3. Serverless-First: AWS Lambda (Python 3.12) + On-Demand Fargate for Long Scans.
-- **Decision:** **Option 3 (Serverless-First)**.
-- **Rationale:** Keeps customer idle monthly spend at \$0.00 - \$0.50. Provides instantaneous auto-scaling, eliminates Kubernetes maintenance friction, and adheres to AWS well-architected serverless best practices.
-
----
+- **Context:** Minimizing customer idle spend while supporting heavy scanner workloads.
+- **Decision:** Hybrid model: AWS Lambda (Python 3.12) runs the core API, EventBridge handlers, and fast scans ($0.00 idle); ephemeral single-use Amazon ECS Fargate tasks are dispatched for deep container unpacking and monorepo AST analysis.
+- **Status:** **RECOMMENDED**.
 
 ### ADR-002: Infrastructure Graph Storage Backend
-- **Context:** AEGIS builds a comprehensive dependency graph of AWS resources to trace attack paths and calculate blast radius.
-- **Considered Options:**
-  1. Amazon Neptune (Managed Graph DB).
-  2. Neo4j Community / Enterprise Container.
-  3. In-Memory NetworkX MultiDiGraph with S3 Compressed JSON Snapshots.
-- **Decision:** **Option 3 (In-Memory NetworkX + S3 Snapshots)**.
-- **Rationale:** Neptune costs \$150 - \$400+/month idle. Over 99% of customer AWS accounts contain under 25,000 resources. NetworkX performs BFS shortest-path queries in $< 15\text{ms}$ in local RAM, saving customers over \$2,500/year while reducing operational complexity to zero.
+- **Context:** Graph traversal latency vs provisioned database costs.
+- **Decision:** In-memory NetworkX with S3 JSON snapshots. 99% of AWS environments have $< 25,000$ resources. Traversal takes $< 15\text{ms}$ in RAM, saving customers over $2,500/year compared to Amazon Neptune.
+- **Status:** **RECOMMENDED**.
 
----
-
-### ADR-003: Cloud Runtime Threat Detection Strategy
-- **Status:** APPROVED
-- **Context:** Detecting active attacks and credential exfiltration in customer cloud environments.
-- **Considered Options:**
-  1. Host-Level Kernel Agents (eBPF / Falco / Osquery DaemonSets on all EC2/EKS nodes).
-  2. Agentless Cloud-Native Ingestion (GuardDuty, Security Hub ASFF, CloudTrail via EventBridge).
-- **Decision:** **Option 2 (Agentless Cloud-Native Ingestion)**.
-- **Rationale:** In-host agents introduce major friction: kernel compatibility issues, node performance overhead, and potential workload crash risks. Agentless ingestion provides 100% AWS control plane and VPC telemetry out of the box with zero workload interference.
-
----
+### ADR-003: Runtime Threat Detection Strategy
+- **Context:** Host agent friction vs agentless visibility.
+- **Decision:** Tier 1 implements 100% agentless ingestion of GuardDuty and Security Hub findings via EventBridge. Tier 2 enables AWS-managed GuardDuty Runtime Monitoring upon customer opt-in. Third-party host agents (Falco) are deferred.
+- **Status:** **CONDITIONALLY_APPROVED** (Requires validation against live GuardDuty finding fixtures).
 
 ### ADR-004: Bedrock AI Model Inference Flow
-- **Status:** APPROVED
-- **Context:** Processing natural language DevSecOps investigations and remediation generation.
-- **Considered Options:**
-  1. Centralized SaaS Proxy (Customer calls AEGIS vendor backend, vendor calls LLM).
-  2. In-Account Direct Bedrock (Customer AEGIS deployment calls AWS Bedrock directly).
-- **Decision:** **Option 2 (In-Account Direct Bedrock)**.
-- **Rationale:** Guarantees zero data leakage. Customer security metadata and prompts never leave their AWS account perimeter. Leverages customer AWS enterprise discount agreements and complies with strict enterprise CISO requirements.
+- **Context:** Enterprise data privacy and zero data leakage.
+- **Decision:** In-account direct Bedrock invocation over AWS PrivateLink. Prompts are sanitized client-side, encrypted in transit, and discarded post-inference under AWS Bedrock zero-retention terms. Zero third-party SaaS proxy.
+- **Status:** **RECOMMENDED**.
 
----
+### ADR-005: Remediation Governance & Safety Guardrails
+- **Context:** Automated cloud mutations vs risk of production outages.
+- **Decision:** Mode 1 (Advisory) is the immutable default. Mode 2 (Human-Approved) requires cryptographic sign-off. Mode 3 (Autonomous) is strictly opt-in for narrow, pre-validated, low-risk actions on non-production resources.
+- **Status:** **REQUIRES_FOUNDER_DECISION** (Founder must sign off on whether Mode 3 should be included in initial packaging or deferred to Phase 2).
 
-### ADR-005: Remediation Mode 3 (Autonomous Self-Healing) Default Guardrail
-- **Status:** APPROVED
-- **Context:** Automated execution of cloud infrastructure modifications without human approval.
-- **Considered Options:**
-  1. Opt-Out (Autonomous remediation enabled everywhere by default).
-  2. Opt-In Strict Whitelist with Hard Tag Boundaries.
-- **Decision:** **Option 2 (Opt-In Strict Whitelist)**.
-- **Rationale:** Preventing production outages is paramount. Resources tagged `Environment=Production` or critical database/peering resources are immutably locked out of Mode 3 auto-remediation, falling back automatically to Mode 2 (human sign-off).
+### ADR-006: Security Scanner Isolation & Open-Source Licensing
+- **Context:** Semgrep LGPL 2.1 copyleft obligations and untrusted code sandboxing.
+- **Decision:** Scanners run inside isolated, ephemeral ECS Fargate containers communicating via standard OS pipes and JSON data streams, ensuring strict copyright process boundary separation and zero environment residue.
+- **Status:** **RECOMMENDED**.
 
----
-
-### ADR-006: Security Scanner Execution Boundary (Semgrep LGPL Compliance)
-- **Status:** APPROVED
-- **Context:** Running static application security (SAST) scanning using Semgrep without triggering LGPL 2.1 copyleft contamination.
-- **Considered Options:**
-  1. Direct Python Import (`import semgrep`).
-  2. Decoupled Subprocess / Container Execution with JSON Data Streaming.
-- **Decision:** **Option 2 (Decoupled Subprocess Execution)**.
-- **Rationale:** Executing Semgrep as an external binary communicating over OS pipes via serialized JSON guarantees strict separation under copyright law, safeguarding AEGIS's Apache 2.0 intellectual property.
-
----
-
-### ADR-007: Enterprise Multi-Account Architecture
-- **Status:** APPROVED
-- **Context:** Discovering and securing multiple AWS accounts across an AWS Organization.
-- **Considered Options:**
-  1. Full Stack Deployment in every AWS account.
-  2. Hub-and-Spoke STS AssumeRole Architecture.
-- **Decision:** **Option 2 (Hub-and-Spoke STS AssumeRole)**.
-- **Rationale:** AEGIS is deployed in a single Central Security / Tooling account. Spoke accounts deploy a minimal read-only IAM role (`aegis-spoke-role`) trusting the Hub account with an `ExternalId`. Centralizes governance, reduces deployment costs, and simplifies management.
+### ADR-007: Single-Account Deployment vs Multi-Account Complexities
+- **Context:** Frictionless initial customer onboarding.
+- **Decision:** Optimize initial packaging for a single customer AWS account. Cross-account AWS Organizations harvesting via STS AssumeRole is architected as an advanced modular enterprise addon.
+- **Status:** **RECOMMENDED**.

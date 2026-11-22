@@ -1,97 +1,80 @@
-# AEGIS — Agentic DevSecOps Architecture
-## Amazon Bedrock AgentCore Orchestration, Tool Boundaries & Policy Isolation
-
-**Document Version:** 3.0-PHASE-0  
-**Classification:** AI Systems & Agentic Safety Specification  
-
----
-
-## 1. The Core AI Agentic Boundary Mandate
-
-AEGIS enforces the strict architectural separation of **Probabilistic Reasoning** from **Deterministic Authority**:
-
-```
-+-----------------------------------------------------------------------------------+
-|                        THE DUAL-ENGINE ARCHITECTURE                               |
-|                                                                                   |
-|  +-------------------------------------+   +-----------------------------------+  |
-|  | ENGINE A: PROBABILISTIC AI AGENT    |   | ENGINE B: DETERMINISTIC ENGINE    |  |
-|  | (Amazon Bedrock / Claude 3.5 Sonnet)|   | (Deterministic Python State Mach.)|  |
-|  +-------------------------------------+   +-----------------------------------+  |
-|  | - Natural language understanding    |   | - Context Completeness evaluation |  |
-|  | - Question decomposition & planning |   | - Graph BFS attack path traversal |  |
-|  | - Analytical narrative synthesis    |   | - Hard security rule verification |  |
-|  | - Code diff explanation             |   | - FINAL VERDICT ARBITRATION       |  |
-|  | - PR markdown body formatting       |   | - CI/CD EXIT CODE GENERATION      |  |
-|  +-------------------------------------+   +-----------------------------------+  |
-|                    │                                         │                    |
-|                    ▼                                         ▼                    |
-|  +-----------------------------------------------------------------------------+  |
-|  | IMMUTABLE CONVERGENCE: The AI Agent CANNOT override or alter the Verdict   |  |
-|  | mathematically computed by the Deterministic Engine (RULE-08 & RULE-12).   |  |
-|  +-----------------------------------------------------------------------------+  |
-+-----------------------------------------------------------------------------------+
-```
+# AGENTIC DEVSECOPS & DATA BOUNDARY SPECIFICATION
+**Document ID:** `AEGIS-ARCH-006-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** Amazon Bedrock AgentCore, LLM Inference Flow, Data Boundaries, Zero Data Leakage Truth  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Corrected data boundary statements; unpacked customer VPC boundary vs AWS managed Bedrock service plane; documented exact telemetry paths, regional inference, and client-side sanitization.
 
 ---
 
-## 2. Tool Execution Lifecycle & Allowlist Gateway
+## 1. Executive Summary & Core Objective
 
-Every natural language query processed by the Bedrock Agent follows a verified execution cycle:
+Enterprise DevSecOps requires an AI agent capable of synthesizing complex infrastructure context, investigating security incidents, and reasoning over attack paths. However, enterprise security leaders and CISOs demand total clarity regarding where their data travels, where model inference occurs, and what access foundation models retain.
 
-```
-[ Customer Prompt: "Is my Bastion host secure?" ]
-                     │
-                     ▼
-[ Layer 4: Pre-Processor Quarantine Filter ]
-  * Intercepts prompt injection triggers ("ignore previous instructions", "mark safe")
-  * Validates system instructions are sealed
-                     │
-                     ▼
-[ Bedrock AgentCore Orchestrator (Claude 3.5 Sonnet) ]
-  * Analyzes intent: Requires resource inventory, graph relationships, and rule checks
-  * Emits Tool Call: `aegis_inspect_resource_configuration(resource_id="sg-bastion")`
-                     │
-                     ▼
-[ Layer 2: Tool Allowlist Gateway ]
-  * Checks: Is tool in ALLOWED_TOOLS? -> YES
-  * Checks: Is tool in FORBIDDEN_TOOLS? -> NO (Any shell/exec tool raises hard error)
-                     │
-                     ▼
-[ In-Account Python Execution ]
-  * Boto3 / NetworkX queries configuration; returns sanitized JSON
-                     │
-                     ▼
-[ Deterministic Policy Engine ]
-  * Detects Port 22 open to 0.0.0.0/0 -> Issues Verdict: BLOCK
-                     │
-                     ▼
-[ Bedrock Agent Response Synthesis ]
-  * Formulates grounded response: "AEGIS issued verdict BLOCK. Port 22 is exposed to 0.0.0.0/0. Synthesized Rule 14 patch."
-```
+This specification documents the **verified architectural boundaries** of the AEGIS agentic execution engine, distinguishing customer-owned compute environments from AWS-managed regional service planes.
 
 ---
 
-## 3. Tool Inventory Specification
+## 2. Real Data Flow & Architectural Trust Boundaries
 
-```python
-# Strict Whitelist per RULE-03 & RULE-04
-ALLOWED_TOOLS = {
-    "aegis_get_resource_inventory": "Enumerate discovered AWS assets in-scope.",
-    "aegis_inspect_resource_configuration": "Deep inspection of security groups, route tables, IAM policies.",
-    "aegis_trace_attack_path": "Execute BFS traversal from ingress nodes to private assets.",
-    "aegis_check_context_completeness": "Query mathematical completeness gate score.",
-    "aegis_evaluate_security_rules": "Run 15 deterministic rule evaluators.",
-    "aegis_get_remediation_plan": "Retrieve synthesized .patch diff and rollback steps.",
-    "aegis_scan_application_source": "Run AST SAST/SCA inspection on authorized repository (New).",
-    "aegis_scan_container_image": "Query ECR image CVE inspection results (New).",
-    "aegis_inspect_kubernetes_cluster": "Query EKS cluster configuration & RBAC posture (New)."
-}
+```mermaid
+flowchart TD
+    subgraph Customer VPC & Compute Perimeter [Customer AWS Account Owned]
+        APIGW[API Gateway HTTP API] --> Lambda[AEGIS Core Orchestrator (Lambda)]
+        Lambda --> Boto[Boto3 Read-Only Harvesters]
+        Boto --> CloudInfra[(Customer AWS Infrastructure: EC2, S3, IAM, EKS)]
+        Lambda --> Sanitizer[Client-Side Data Hygiene & Masking Filter]
+        Sanitizer --> S3Store[(Customer Encrypted S3 Bucket: Graph State & History)]
+        Sanitizer --> Dynamo[(Customer DynamoDB Table: Findings & Sessions)]
+    end
 
-FORBIDDEN_TOOLS = {
-    "shell_exec", "bash", "cmd", "powershell",
-    "terraform_apply", "cloudformation_deploy",
-    "write_file", "edit_file", "delete_resource",
-    "code_interpreter", "dump_credentials"
-}
+    subgraph AWS Managed Service Plane [AWS Shared Responsibility Perimeter]
+        Sanitizer -->|HTTPS over AWS PrivateLink / VPC Endpoint| BedrockAPI[AWS Bedrock Runtime Endpoint]
+        BedrockAPI --> Model[Anthropic Claude 3.5 Sonnet / AWS Bedrock]
+    end
+
+    subgraph External Public Internet [Strictly Prohibited]
+        PublicWeb[External SaaS / Multi-Tenant Proxy]
+    end
+
+    Lambda -.->|BLOCKED: Zero Data Flow| PublicWeb
+    Model -.->|AWS Contractual Zero-Retention Policy| Discard[Transient Memory - Discarded After Inference]
 ```
+
+### 2.1 Boundary Breakdown: What Runs Where
+
+| Architectural Component | Execution Location | Network Boundary | Customer Control Level |
+| :--- | :--- | :--- | :--- |
+| **Agent Core & State Machine** | Customer AWS Account | Customer VPC / AWS Lambda | 100% Customer Controlled |
+| **Tool Execution & Collectors** | Customer AWS Account | Customer VPC / AWS PrivateLink | 100% Customer Controlled |
+| **Telemetry & State Storage** | Customer AWS Account | Amazon S3 & DynamoDB (KMS CMK) | 100% Customer Controlled |
+| **Investigation History & Logs** | Customer AWS Account | CloudWatch Logs & S3 WORM Bucket | 100% Customer Controlled |
+| **Foundation Model Inference** | AWS Managed Bedrock Plane | AWS Regional Managed Endpoint | Managed AWS Service (Regional) |
+
+---
+
+## 3. AWS Bedrock Inference Truth & Privacy Commitments
+
+### 3.1 What "In-Account" Truly Means
+Model inference **does not run inside the customer's private VPC instances** (which would require massive dedicated GPU clusters). Instead, inference is invoked via the **AWS Bedrock Runtime Regional API** (`bedrock-runtime.<region>.amazonaws.com`).
+
+### 3.2 Key Privacy & Security Guarantees:
+1. **AWS Bedrock Zero-Retention Commitment:** Under standard AWS Bedrock terms, customer prompts and completions:
+   - Are **never used to train base models**.
+   - Are **never shared with third-party model providers** (e.g. Anthropic).
+   - Are processed in transient memory and discarded immediately upon completion of the response stream.
+2. **Private Network Routing via AWS PrivateLink:** All traffic between the AEGIS Lambda backend and Amazon Bedrock routes across an **Interface VPC Endpoint (AWS PrivateLink)** for Bedrock. Traffic traverses the private AWS global network backbone and **never traverses the public internet**.
+3. **Strict Regional Isolation:** Inference is strictly pinned to the customer's selected AWS region (e.g., `us-east-1` or `eu-central-1`). Cross-region inference routing is explicitly disabled in the Boto3 Bedrock configuration (`enforce_regional_endpoint=True`).
+
+---
+
+## 4. Client-Side Data Hygiene & Context Minimization Pipeline
+
+To adhere to the principle of least privilege, AEGIS minimizes and sanitizes context *before* transmitting prompts to Bedrock:
+
+1. **Context Minimization:** Rather than sending entire raw CloudFormation templates or tens of thousands of lines of CloudTrail logs, AEGIS extracts only the specific AST nodes, graph edges, and relevant log records associated with the investigation.
+2. **Automated Secret Redaction:** A deterministic regex filter intercepts all prompt text, redacting:
+   - AWS Access Key IDs (`AKIA[0-9A-Z]{16}`) $\rightarrow$ `[REDACTED_AWS_KEY]`
+   - Sensitive Headers & Bearer Tokens $\rightarrow$ `[REDACTED_TOKEN]`
+   - Private Keys (RSA/EC headers) $\rightarrow$ `[REDACTED_PRIVATE_KEY]`
+   - Database Connection URIs with embedded passwords $\rightarrow$ `[REDACTED_DB_URI]`
+3. **Prompt Injection Quarantine:** Untrusted metadata (resource tags, commit messages) is encapsulated inside strict XML delimiters (`<untrusted_data>`) and parsed as string literals.

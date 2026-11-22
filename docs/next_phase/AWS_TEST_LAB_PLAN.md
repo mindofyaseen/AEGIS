@@ -1,116 +1,65 @@
 # ISOLATED DISPOSABLE AWS TEST LAB SPECIFICATION
-**Document ID:** `AEGIS-ARCH-017`  
-**Domain:** AWS Testing Infrastructure, Disposable Sandbox, Vulnerability Fixtures, Cost Control  
-**Author:** Principal Infrastructure & Quality Engineer  
-**Status:** Architecture Blueprint / Discovery Phase  
+**Document ID:** `AEGIS-ARCH-017-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** AWS Testing Infrastructure, Disposable Sandbox, Budgetary Governance, Teardown Verification  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Replaced naive budget alarm claims with multi-layer cost controls; defined resource-by-resource hourly costs and teardown crons; established local testing alternatives (LocalStack, kind, moto).
 
 ---
 
 ## 1. Executive Summary & Core Objective
 
-To rigorously validate AEGIS’s autonomous discovery, graph attack path traversal, runtime threat correlation, and remediation capabilities against live AWS APIs without putting production workloads at risk, we require a dedicated, isolated, disposable AWS testbed.
+Validating AEGIS against live AWS APIs is essential to prove real-world accuracy. However, testing must be rigorously bounded to prevent unexpected billing.
 
-This specification details the architecture of the **AEGIS Disposable AWS Test Lab**. It defines a deliberately vulnerable, self-contained cloud environment deployed via Terraform or CloudFormation. The test lab incorporates hard budgetary caps ($10 maximum planned budget, auto-shutdown alarm at $5), strict non-interference isolation guarantees, and an automated teardown mechanism.
+A critical cloud engineering reality governs this design: **An AWS Budget alarm is merely an asynchronous notification, NOT a hard spending stop.** AWS Budgets can take 8 to 24 hours to evaluate and deliver alerts, during which runaway resources can accumulate charges.
+
+This specification establishes **Multi-Layer Cost Governance** designed to execute validation suites within a strict planned budget ($\approx \$10.00$).
 
 ---
 
-## 2. Test Lab Vulnerability Fixture Architecture
+## 2. Resource-by-Resource Cost & Lifecycle Inventory
 
-The testbed deploys realistic, controlled security misconfigurations representing common real-world cloud attack vectors:
+| Resource | AWS Service | Purpose & Vulnerability Placed | Hourly Cost | Expected Duration | Expected Total Cost | Cleanup Procedure |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Vulnerable EC2** | Amazon EC2 (`t4g.nano`) | IMDSv1 active; public SG 22/80 open to `0.0.0.0/0` | $0.0042 / hr | 4 hours | **$0.017** | `ec2.terminate_instances()` |
+| **Vulnerable S3** | Amazon S3 | Public read ACL enabled; SSE-KMS disabled | <$0.0001 / hr | 4 hours | **<$0.001** | Empty bucket + `s3.delete_bucket()` |
+| **Vulnerable RDS (Optional)** | Amazon RDS (`db.t4g.micro`) | Storage unencrypted; `PubliclyAccessible=true` | $0.0170 / hr | 2 hours | **$0.034** | `rds.delete_db_instance(SkipFinalSnapshot=True)` |
+| **Overprivileged IAM** | AWS IAM | Attached `AdministratorAccess` + `*` trust policy | $0.0000 / hr | 4 hours | **$0.000** | Detach policy + `iam.delete_role()` |
+| **Vulnerable ECR** | Amazon ECR | Repository holding Alpine 3.14 CVE fixture | <$0.0001 / hr | 4 hours | **<$0.001** | `ecr.delete_repository(force=True)` |
+| **Total Test Session** | — | **Complete E2E Validation Run** | — | — | **<$0.10 per run** | Clean teardown script |
+
+---
+
+## 3. Multi-Layer Cost Control Architecture
 
 ```mermaid
 flowchart TD
-    subgraph Isolated Test Lab VPC [VPC: 10.99.0.0/16]
-        subgraph Public Subnet [10.99.1.0/24]
-            EC2[Vulnerable EC2: web-frontend<br/>IMDSv1 Enabled<br/>Security Group: Port 22 & 80 Open to 0.0.0.0/0]
-        end
-
-        subgraph Private Subnet [10.99.2.0/24]
-            RDS[(Vulnerable RDS MySQL: orders-db<br/>Unencrypted Storage<br/>Publicly Accessible Flag=True)]
-        end
+    Deploy[Deploy Test Lab via Terraform / CloudFormation] --> Tag[Tag AEGIS-Scope=TestLab & ExpiryTime]
+    
+    subgraph Multi-Layer Circuit Breakers
+        Tag --> Layer1[Layer 1: Auto-Shutdown Lambda via EventBridge Cron - 4 hr TTL]
+        Tag --> Layer2[Layer 2: CloudWatch Billing Metric Alarm - Threshold $5.00]
+        Tag --> Layer3[Layer 3: AWS Budget Actual Alert - Threshold $8.00]
     end
 
-    subgraph Identity & Storage Fixtures
-        S3Bucket[(Vulnerable S3 Bucket: aegis-test-public-data<br/>Public Read ACL<br/>No SSE-KMS)]
-        IAMRole[Vulnerable IAM Role: lambda-data-loader<br/>Policy: AdministratorAccess<br/>Wildcard Principal Trust]
-        ECRRepo[ECR Repo: vulnerable-microservice<br/>Contains Alpine 3.14 CVE-2022-28391]
-    end
-
-    EC2 -.->|Reachable via Public Internet| S3Bucket
-    EC2 -.->|Can reach private subnet| RDS
-    EC2 -.->|Assumes Overprivileged Role| IAMRole
+    Layer1 -->|TTL Expired (4 hours)| Destroy[Execute testlab_destroy.py]
+    Layer2 -->|Triggered| Destroy
+    Destroy --> Audit[Verify 0 Active TestLab Resources via Boto3]
 ```
 
-### 2.1 Concrete Resource Inventory
-1. **Compute**:
-   - 1x `t4g.nano` (or `t3.nano`) EC2 instance running Amazon Linux 2023.
-   - Misconfiguration: `HttpTokens=optional` (IMDSv1 active), Security Group `0.0.0.0/0` on port 22 and port 80.
-2. **Storage**:
-   - 1x S3 bucket `aegis-test-lab-public-data-<account-id>`.
-   - Misconfiguration: Public Read Access enabled, SSE-KMS disabled (standard SSE-S3), bucket versioning disabled.
-3. **Database**:
-   - 1x `db.t4g.micro` RDS MySQL single-AZ instance.
-   - Misconfiguration: Storage encryption disabled, `PubliclyAccessible=true` (simulating misplaced database subnet).
-4. **Identity & Access Management (IAM)**:
-   - 1x IAM Role `aegis-test-overprivileged-role`.
-   - Misconfiguration: Directly attaches `arn:aws:iam::aws:policy/AdministratorAccess` with trust policy allowing `*`.
-5. **Container Registry**:
-   - 1x Amazon ECR repository `aegis-test-workload`.
-   - Misconfiguration: Tag immutability disabled, image scanning on push disabled.
+### 3.1 Layer 1: Time-To-Live (TTL) Auto-Shutdown Lambda
+- Every provisioned test resource receives a tag: `AEGIS-TTL-Hours=4`.
+- A lightweight Lambda function (`testlab_destroy.py`) scheduled via EventBridge cron runs every 60 minutes.
+- If current time exceeds creation time + TTL, the function forcefully destroys the test lab stack, eliminating dependency on human cleanup.
+
+### 3.2 Layer 2 & 3: CloudWatch & AWS Budgets Notifications
+- CloudWatch Billing Alarm configured at **$5.00** sends an immediate SNS alert to the on-call engineer.
+- AWS Budget notification configured at **$8.00** provides secondary executive visibility.
 
 ---
 
-## 3. Strict Non-Interference Guarantees
+## 4. Local Testing Alternatives (Zero-Cost Pre-Flight)
 
-To ensure that the test lab never impacts or inspects customer production infrastructure:
-1. **Mandatory Tag Isolation**:
-   - Every resource in the testbed carries the tag `AEGIS-Scope=TestLab` and `AEGIS-Environment=IsolatedSandbox`.
-   - When AEGIS runs in test-validation mode, its Boto3 filters strictly enforce `Tag:AEGIS-Scope == TestLab`.
-2. **Network Isolation**:
-   - The test VPC (`10.99.0.0/16`) has zero VPC Peering connections, zero Transit Gateway attachments, and zero Direct Connect associations.
-3. **IAM Boundary Lockout**:
-   - The test lab's IAM roles are constrained by an IAM Permissions Boundary that explicitly denies access to all resources outside `arn:aws:*:*:*:*/aegis-test-*`.
-
----
-
-## 4. Cost Control & Automated Destruction Protocol
-
-### 4.1 Cost Model ($10 Maximum Planning Budget)
-Because the test lab uses minimal micro/nano instances and is designed to run only during verification cycles, its operational cost is negligible:
-- 1x `t4g.nano` EC2: \$0.0042 / hour ($\approx \$3.02$ / month if run continuously; $\$0.05$ if run for 12 hours).
-- 1x `db.t4g.micro` RDS: \$0.017 / hour ($\approx \$0.20$ for a 12-hour test run).
-- 1x S3 Bucket & ECR Repo: $<\$0.01$.
-- **Total Test Run Cost (4-hour validation session)**: **$<\$0.25**.
-
-### 4.2 Automated Budgetary Circuit Breaker
-```yaml
-# deploy/testlab/aegis_testlab_budget.yml
-Resources:
-  AegisTestLabBudget:
-    Type: AWS::Budgets::Budget
-    Properties:
-      Budget:
-        BudgetName: AegisTestLabBudget
-        BudgetLimit:
-          Amount: 5.00
-          Unit: USD
-        TimeUnit: MONTHLY
-        BudgetType: COST
-      NotificationsWithSubscribers:
-        - Notification:
-            NotificationType: ACTUAL
-            ComparisonOperator: GREATER_THAN
-            Threshold: 80
-            ThresholdType: PERCENTAGE
-          Subscribers:
-            - SubscriptionType: EMAIL
-              Address: devsecops-alerts@company.internal
-```
-
-### 4.3 Auto-Teardown Script (`testlab_destroy.py`)
-A standalone Python script executes complete cleanup via Boto3:
-- Deletes S3 bucket objects and versions, followed by bucket deletion.
-- Terminates RDS instance without final snapshot (`SkipFinalSnapshot=True`).
-- Terminates EC2 instance and deletes Security Groups.
-- Deletes IAM role and test VPC stack.
-- Guarantees 100% clean account state post-test.
+Before deploying any live AWS resources, all modules must pass pre-flight validation locally:
+1. **Mocked AWS APIs:** LocalStack and Moto simulate EC2, S3, IAM, and ECR calls with zero AWS spend.
+2. **Kubernetes Validation:** Local `kind` (Kubernetes in Docker) or `k3d` clusters validate EKS posture rules without paying AWS EKS control plane fees ($0.10/hr).
+3. **Synthetic Payloads:** Static JSON fixtures test CloudTrail parsing and GuardDuty threat correlation offline.

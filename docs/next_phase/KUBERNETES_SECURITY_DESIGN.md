@@ -1,33 +1,68 @@
 # KUBERNETES & EKS SECURITY ARCHITECTURE SPECIFICATION
-**Document ID:** `AEGIS-ARCH-009`  
-**Domain:** Container Orchestration, Amazon EKS, Kubernetes Security Posture Management (KSPM)  
-**Author:** Principal Enterprise Cloud Security Architect  
-**Status:** Architecture Blueprint / Discovery Phase  
+**Document ID:** `AEGIS-ARCH-009-REV2` (Phase 0.5 Technical Correction)  
+**Domain:** Amazon EKS, Kubernetes Security Posture Management (KSPM), EKS Access Entries, Kubernetes RBAC  
+**Status:** Architecture Blueprint / Phase 0.5 Corrected  
+**Changelog:** Corrected authentication architecture; replaced IRSA misuse with AWS EKS Access Entries & IAM Authenticator tokens; added network topology requirements (private vs public API endpoints); defined scoped read-only ClusterRole and customer setup prerequisites.
 
 ---
 
 ## 1. Executive Summary & Core Objective
 
-Amazon Elastic Kubernetes Service (EKS) represents the primary runtime workload execution platform for modern cloud-native enterprises. However, Kubernetes introduces a multi-layered attack surface that bridges container vulnerabilities, Kubernetes API misconfigurations, overly permissive Role-Based Access Control (RBAC), Pod Security Standard (PSS) violations, and underlying AWS cloud infrastructure.
+Amazon Elastic Kubernetes Service (EKS) represents a primary compute tier for enterprise container workloads. However, Kubernetes introduces a layered attack surface bridging container images, Kubernetes RBAC, API server access controls, and AWS IAM cloud credentials.
 
-AEGIS extends its autonomous DevSecOps intelligence into Amazon EKS with an **agentless-first, non-intrusive discovery model** combined with **ephemeral in-cluster auditing**. AEGIS discovers EKS clusters, node groups, and Fargate profiles via AWS Boto3 APIs, connects securely to the Kubernetes API server using AWS IAM Authenticator and OIDC federation (IRSA), inspects cluster state, detects privilege escalation vectors, and traces hybrid attack paths bridging Kubernetes pods to AWS Cloud IAM credentials.
+This specification defines how a customer-deployed AEGIS instance discovers, connects to, and inspects existing customer Amazon EKS clusters without intrusive host agents, mutating webhooks, or permanent cluster administrative credentials.
 
 ---
 
-## 2. EKS Discovery & Kubernetes API Access Strategy
+## 2. EKS Authentication & Authorization Architecture
 
-### 2.1 AWS Control Plane Discovery (Agentless AWS Tier)
-The AEGIS AWS collector discovers EKS clusters and managed infrastructure through the following standard read-only Boto3 operations:
-- `eks:ListClusters` & `eks:DescribeCluster` (API server endpoint, certificate authority, OIDC issuer URL, logging status, cluster version, VPC config).
-- `eks:ListNodegroups` & `eks:DescribeNodegroup` (Instance types, AMI version, IAM node instance role, security groups, subnets).
-- `eks:ListFargateProfiles` & `eks:DescribeFargateProfile` (Pod execution roles, selectors).
-- `eks:ListAddons` & `eks:DescribeAddon` (VPC-CNI, CoreDNS, Kube-Proxy, GuardDuty agent versions).
+### 2.1 Technical Clarification: IRSA vs EKS Cluster Ingress Authentication
+- **What IRSA Actually Is:** IAM Roles for Service Accounts (IRSA) is an in-cluster mechanism whereby Kubernetes Pods obtain temporary AWS IAM credentials via OIDC federation with AWS STS (`sts:AssumeRoleWithWebIdentity`). 
+- **What AEGIS Requires:** AEGIS is an external service (or Lambda/Fargate task in the customer's account) that needs to authenticate *into* the customer's Kubernetes API server.
+- **The Correct EKS Ingress Architecture:**
+  1. **EKS Access Entries (Modern Standard - EKS 1.23+):** The customer provisions an EKS Access Entry linking the AEGIS execution IAM Role ARN (`arn:aws:iam::123456789012:role/aegis-core-execution-role`) with the AWS-managed `AmazonEKSViewPolicy` or `AmazonEKSClusterAdminPolicy` with scoped access.
+  2. **Legacy `aws-auth` ConfigMap (Fallback for older clusters):** Maps the AEGIS IAM Role ARN to a Kubernetes RBAC group (`aegis-auditors`).
+  3. **STS Token Generation:** AEGIS uses `botocore.signers.RequestSigner` to generate a presigned AWS STS `GetCallerIdentity` URL, base64-encoded as a bearer token (`k8s-aws-v1.<token>`).
+  4. **Kubernetes RBAC Authorization:** The Kubernetes API server validates the STS bearer token against AWS IAM, maps the IAM principal to an identity, and enforces the attached read-only `ClusterRole`.
 
-### 2.2 Kubernetes Control Plane Authentication (IRSA / IAM Authenticator)
-AEGIS does not store static `kubeconfig` files or long-lived service account tokens. Authentication follows modern AWS IAM best practices:
-1. **IAM Role for Service Accounts (IRSA)**: The AEGIS orchestrator assumes an IAM role (`aegis-k8s-auditor-role`) that is mapped inside the target EKS cluster's `aws-auth` ConfigMap or modern EKS Access Entries (`eks:CreateAccessEntry`).
-2. **Ephemeral Bearer Token Generation**: Using `botocore.signers.RequestSigner`, AEGIS generates a short-lived (15-minute) signed AWS STS `GetCallerIdentity` token matching the `k8s-aws-v1` format.
-3. **Restricted ClusterRole**: AEGIS binds strictly to a read-only `ClusterRole` granting `get`, `list`, and `watch` permissions across core, apps, batch, and rbac.authorization.k8s.io API groups.
+```mermaid
+sequenceDiagram
+    autonumber
+    participant AEGIS as AEGIS Core (Lambda/Fargate)
+    participant STS as AWS STS (GetCallerIdentity)
+    participant EKS_API as EKS API Server (kube-apiserver)
+    participant IAM as AWS IAM / Access Entry Engine
+    participant RBAC as K8s RBAC Authorizer
+
+    AEGIS->>STS: Generate presigned GetCallerIdentity request
+    STS-->>AEGIS: Returns signed token string (k8s-aws-v1)
+    AEGIS->>EKS_API: HTTPS GET /api/v1/namespaces (Bearer Token)
+    EKS_API->>IAM: Authenticate bearer token via STS Webhook
+    IAM-->>EKS_API: Verified Principal: arn:aws:iam::123:role/aegis-execution-role
+    EKS_API->>RBAC: Check Access Entry / ClusterRole: aegis-readonly-auditor
+    RBAC-->>EKS_API: Permitted (Verb: get, list)
+    EKS_API-->>AEGIS: Returns Kubernetes resource manifests (JSON)
+```
+
+---
+
+## 3. Network Topology & API Endpoint Reachability
+
+Customer EKS clusters employ three endpoint access configurations:
+1. **Public Endpoint Only:** AEGIS connects directly over TLS 1.3 via the public FQDN.
+2. **Public and Private Endpoints:** External traffic routes via public IP, internal traffic routes via VPC. AEGIS connects over HTTPS.
+3. **Private Endpoint Only (Enterprise Standard):** The Kubernetes API server has no public DNS or IP; it is accessible only from within the cluster's VPC or peered networks.
+
+### AEGIS Network Prerequisites for Private Clusters:
+- **VPC Subnet Placement:** The AEGIS Lambda backend or Fargate task must be attached to the customer's VPC (or a peered VPC) with subnets that have route table connectivity to the EKS cluster's VPC subnets.
+- **Security Group Ingress:** The EKS Cluster Security Group must allow inbound TCP port 443 from the AEGIS security group (`aegis-backend-sg`).
+- **Private DNS Resolution:** Core VPC DHCP options must resolve the cluster's private Amazon Route 53 resolver endpoint.
+
+---
+
+## 4. Scoped Kubernetes RBAC Specification
+
+AEGIS requires strictly read-only inspection capabilities. The customer applies this manifest during cluster onboarding:
 
 ```yaml
 # deploy/k8s/aegis_readonly_clusterrole.yaml
@@ -37,100 +72,58 @@ metadata:
   name: aegis-readonly-auditor
   labels:
     app.kubernetes.io/name: aegis
+    app.kubernetes.io/part-of: devsecops
 rules:
+  # Core Workloads & Nodes
   - apiGroups: [""]
-    resources: ["pods", "nodes", "namespaces", "services", "serviceaccounts", "configmaps"]
+    resources: ["pods", "nodes", "namespaces", "services", "serviceaccounts", "configmaps", "endpoints"]
     verbs: ["get", "list"]
+  # Deployments, DaemonSets, StatefulSets
   - apiGroups: ["apps"]
     resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
     verbs: ["get", "list"]
+  # Batch Workloads
   - apiGroups: ["batch"]
     resources: ["jobs", "cronjobs"]
     verbs: ["get", "list"]
+  # RBAC Inspection (Evaluating privilege escalation)
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["clusterroles", "clusterrolebindings", "roles", "rolebindings"]
     verbs: ["get", "list"]
+  # Pod Security & Disruption
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]
     verbs: ["get", "list"]
+  # Ingress & Network Policies
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies", "ingresses"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: aegis-readonly-auditor-binding
+subjects:
+  - kind: Group
+    name: aegis-auditors
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: aegis-readonly-auditor
+  apiGroup: rbac.authorization.k8s.io
 ```
 
----
-
-## 3. Kubernetes Security Posture Management (KSPM) Engine
-
-AEGIS evaluates cluster security across four critical vectors:
-
-### 3.1 Pod Security Standards (PSS) & Workload Security
-Evaluates every workload against the Kubernetes Pod Security Standards (Baseline and Restricted):
-- **Privileged Containers**: Detects `securityContext.privileged: true` allowing full root breakout to the host kernel.
-- **Host Namespace Sharing**: Detects `hostPID: true`, `hostNetwork: true`, or `hostIPC: true`.
-- **Root Execution**: Identifies containers running with `runAsNonRoot: false` or `runAsUser: 0`.
-- **Capability Additions**: Detects dangerous Linux capabilities like `SYS_ADMIN`, `NET_ADMIN`, `SYS_PTRACE`, `DAC_OVERRIDE`.
-- **Writable Root Filesystem**: Flags absence of `readOnlyRootFilesystem: true`.
-- **Resource Constraints**: Audits missing CPU/memory requests and limits preventing Node DoS.
-
-### 3.2 RBAC Least-Privilege & Escalation Analysis
-Audits Kubernetes RBAC configurations to find dangerous permissions:
-- **Wildcard Permissions**: Detects `*` in verbs or resources.
-- **Privilege Escalation Roles**: Flags roles permitting `bind` or `escalate` on ClusterRoles.
-- **Secret Theft Vectors**: Flags workloads allowed to `get` or `list` secrets in sensitive namespaces (`kube-system`, `aegis`).
-- **Cluster Admin Overuse**: Maps all subjects bound to `cluster-admin`.
-- **AutomountServiceAccountToken**: Detects default service account tokens automatically mounted into pods where API access is unnecessary.
-
-### 3.3 Node Security & CIS Kubernetes Benchmark
-- **Kubelet Configuration**: Evaluates anonymous authentication, webhook auth, and read-only port exposure (`10255`).
-- **Node IAM Instance Profiles**: Verifies whether worker nodes utilize IMDSv2 with hop count 1 to prevent pods from stealing EC2 node instance credentials.
-- **Container Runtime**: Verifies containerd configuration and rootless execution where applicable.
+> [!IMPORTANT]
+> Secrets (`apiGroups: [""], resources: ["secrets"]`) are **explicitly excluded** from the `ClusterRole`. AEGIS inspects workload configurations and service account permissions without ever reading raw Kubernetes secrets or environment variable secret values.
 
 ---
 
-## 4. Attack Path Bridging: Hybrid K8s-to-AWS Lateral Movement
+## 5. Kubernetes Posture Auditing Scope
 
-The most severe cloud vulnerabilities occur at the seam between Kubernetes and AWS IAM. AEGIS's unified NetworkX graph links Kubernetes workloads directly to AWS IAM identities.
-
-```mermaid
-flowchart TD
-    Internet([Public Internet]) -->|Exposed Ingress 443| Ingress[EKS Ingress Controller]
-    Ingress -->|Routes to| Pod[Vulnerable Pod: order-service]
-    Pod -->|Mounts Token| SA[ServiceAccount: order-sa]
-    SA -->|IRSA Annotation: eks.amazonaws.com/role-arn| IAMRole[IAM Role: order-service-role]
-    IAMRole -->|Policy Permits| S3Bucket[(S3 Bucket: enterprise-financial-data)]
-    Pod -->|Alternative Vector: IMDSv1 Reached| NodeProfile[EC2 Node Instance Profile]
-    NodeProfile -->|AdministratorAccess Policy| AWSFull[AWS Account Compromise]
-
-    classDef public fill:#ef4444,stroke:#991b1b,color:#fff;
-    classDef k8s fill:#3b82f6,stroke:#1d4ed8,color:#fff;
-    classDef aws fill:#f59e0b,stroke:#b45309,color:#fff;
-    classDef crown fill:#10b981,stroke:#047857,color:#fff;
-
-    class Internet public;
-    class Ingress,Pod,SA k8s;
-    class IAMRole,NodeProfile,AWSFull aws;
-    class S3Bucket crown;
-```
-
-### 4.1 Hybrid Attack Path Detection Rules
-1. **IRSA Blast Radius**: A pod with RCE vulnerability or public exposure has an associated IRSA role granting write/delete permissions to sensitive AWS data.
-2. **IMDSv1 Node Steal**: A pod running on an EC2 worker node lacking `HttpEndpoint=enabled` and `HttpPutResponseHopLimit=1` can query `169.254.169.254` and retrieve temporary node instance credentials.
-3. **EKS Access Entry Overprivilege**: An IAM role mapped with `AmazonEKSClusterAdminPolicy` without MFA or IP restriction.
-
----
-
-## 5. Tool Evaluation & Selection Matrix
-
-| Tool | Focus | Performance | Integration Strategy | AEGIS Recommendation |
-| :--- | :--- | :--- | :--- | :--- |
-| **Boto3 EKS Client** | AWS Control Plane | Real-time / Immediate | Native Python | **Adopted (Core Engine)** |
-| **K8s Python Client** | K8s API Inspection | Fast (<5s per cluster) | Embedded in AEGIS backend | **Adopted (API Auditor)** |
-| **Kubescape (ARMO)** | CIS Benchmark & NSA-CISA | Moderate | Subprocess / Container Job | **Phase 1 Optional Runner** |
-| **Trivy Operator** | In-Cluster Image & Vuln | High memory footprint | In-cluster DaemonSet | **Avoided (Too invasive)** |
-| **kube-bench** | CIS Worker Node Benchmark | Ephemeral Job | Ephemeral Kubernetes Job | **Adopted for Deep Scan** |
-
----
-
-## 6. Enterprise Safety & Customer Impact
-
-1. **Zero Workload Interference**: AEGIS does not inject mutating admission webhooks, proxies, or resident agents into customer clusters.
-2. **Zero Ingress/Egress Tampering**: AEGIS never alters Service, Ingress, or NetworkPolicy definitions without explicit Mode 2/3 remediation approval.
-3. **Bandwidth & CPU Guarantees**: Kubernetes API requests are throttled with a client-side token bucket (`qps=10`, `burst=20`) to prevent API server saturation during discovery.
+AEGIS audits EKS clusters across 4 operational domains:
+1. **Pod Security Standards (PSS):** Validates all workloads against `Privileged`, `Baseline`, and `Restricted` standards (e.g., flagging `privileged: true`, `hostPID: true`, `runAsRoot: true`, missing resource limits).
+2. **RBAC Least Privilege:** Identifies wildcard permissions (`*`), secret-stealing cluster roles, and default service account token auto-mounting.
+3. **Control Plane Configuration:** Boto3 `eks:DescribeCluster` audits cluster logging status (API, Audit, Authenticator, ControllerManager, Scheduler) and control plane version deprecation.
+4. **Hybrid EKS-to-AWS Lateral Attack Paths:**
+   - Detects Pods mounting ServiceAccounts annotated with `eks.amazonaws.com/role-arn` (IRSA) that grant sensitive AWS data access.
+   - Detects EC2 worker nodes lacking IMDSv2 (`HttpPutResponseHopLimit > 1`), allowing container root escapes to steal node instance profile credentials.
