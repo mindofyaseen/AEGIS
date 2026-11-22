@@ -1,0 +1,21 @@
+# AEGIS GitLab CI Gatekeeper Template
+# Include this template in your .gitlab-ci.yml to enforce autonomous cloud security gates
+
+stages:
+  - test
+  - security-gate
+  - deploy
+
+aegis_devsecops_gate:
+  stage: security-gate
+  image: python:3.12-slim
+  variables:
+    AEGIS_FAIL_ON: "HIGH"
+  before_script:
+    - pip install --no-cache-dir requests pydantic
+  script:
+    - echo "Executing AEGIS Autonomous DevSecOps Gatekeeper..."
+    - python cli/aegis_cli.py gatekeeper --fail-on "$AEGIS_FAIL_ON"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"

@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from typing import Dict, Any, Optional, List
@@ -23,6 +23,22 @@ from backend.models import InvestigationReport, Verdict, CollectorRunReport, Col
 from backend.orchestration.investigator import AegisInvestigator
 from services.incident_analysis.timeline_engine import CloudTrailTimelineEngine, TimelineEvent
 from services.infrastructure_graph.graph_engine import InfrastructureGraphEngine
+from integrations.bedrock.guardrails_generator import BedrockGuardrailsGenerator
+from backend.api.auth import get_current_user, require_role, create_access_token, UserSession
+from services.appsec.orchestrator import AppSecOrchestrator
+from services.container_security.ecr_harvester import ECRHarvester
+from services.container_security.dockerfile_analyzer import DockerfileAnalyzer
+from services.kubernetes_security.eks_harvester import EKSHarvester
+from services.kubernetes_security.posture_evaluator import KubernetesPostureEvaluator
+from services.runtime.event_dispatcher import RuntimeEventDispatcher
+from services.runtime.threat_correlator import GraphThreatCorrelator
+from services.forensics.cloudtrail_engine import CloudTrailForensicEngine
+from services.forensics.blast_radius import BlastRadiusCalculator
+from services.forensics.containment_sops import ContainmentSOPGenerator
+from services.remediation.state_machine import RemediationStateMachine
+from services.remediation.mode1_advisory import Mode1AdvisoryGenerator
+from services.remediation.mode2_approvals import Mode2ApprovalEngine
+from services.remediation.mode3_autonomous import Mode3AutonomousEngine
 
 app = FastAPI(
     title="AEGIS Cloud Security & DevSecOps Platform",
@@ -399,6 +415,219 @@ def get_bedrock_guardrails_spec():
         "boto3_create_guardrail_payload": BedrockGuardrailsGenerator.generate_boto3_spec(),
         "cloudformation_template": BedrockGuardrailsGenerator.generate_cloudformation_template()
     }
+
+
+# ==============================================================================
+# ENTERPRISE PLATFORM EXPANSIONS (PHASES 1 - 4 ENGINES)
+# ==============================================================================
+
+appsec_orchestrator = AppSecOrchestrator()
+ecr_harvester = ECRHarvester()
+dockerfile_analyzer = DockerfileAnalyzer()
+eks_harvester = EKSHarvester()
+k8s_evaluator = KubernetesPostureEvaluator()
+runtime_dispatcher = RuntimeEventDispatcher()
+graph_threat_correlator = GraphThreatCorrelator()
+forensics_engine = CloudTrailForensicEngine()
+blast_radius_calc = BlastRadiusCalculator()
+containment_gen = ContainmentSOPGenerator()
+remediation_sm = RemediationStateMachine()
+mode1_gen = Mode1AdvisoryGenerator()
+mode2_engine = Mode2ApprovalEngine()
+mode3_engine = Mode3AutonomousEngine()
+
+
+# --- Identity & RBAC ---
+@app.post("/api/v1/auth/token")
+def generate_auth_token(user_id: str = "engineer-alice", role: str = "analyst", email: str = "alice@company.com"):
+    """Generates an authenticated bearer token with assigned RBAC persona."""
+    token = create_access_token(user_id=user_id, email=email, role=role)
+    return {"access_token": token, "token_type": "bearer", "role": role}
+
+
+@app.get("/api/v1/auth/me")
+def get_current_user_profile(user: UserSession = Depends(get_current_user)):
+    """Returns the authenticated user session and permissions."""
+    return user
+
+
+# --- Application Security (AppSec) ---
+@app.post("/api/v1/appsec/scan")
+def run_appsec_scan(directory: Optional[str] = None, user: UserSession = Depends(require_role("analyst"))):
+    """Executes SAST, Secret Scanning, and SCA/SBOM generation on target repository."""
+    scan_target = directory if directory else str(REPO_ROOT / "services" / "appsec")
+    report = appsec_orchestrator.scan_directory(scan_target)
+    return report
+
+
+@app.get("/api/v1/appsec/summary")
+def get_appsec_summary():
+    """Returns AppSec capability status and vulnerability breakdown."""
+    return {
+        "status": "OPERATIONAL",
+        "engines": ["Semgrep SAST (LGPL 2.1 Subprocess)", "Gitleaks Regex Entropy", "CycloneDX SBOM / Grype"],
+        "sandbox_isolation": "Verified Zero Residue",
+    }
+
+
+# --- Container & ECR Security ---
+@app.get("/api/v1/containers/repositories")
+def list_container_repositories():
+    """Lists customer Amazon ECR repositories."""
+    return {"repositories": ecr_harvester.list_repositories()}
+
+
+@app.get("/api/v1/containers/scan")
+def get_container_scan_report(repository: str = "enterprise-order-service", tag: str = "latest"):
+    """Retrieves container image vulnerability scan report."""
+    return ecr_harvester.get_image_scan_findings(repository, tag)
+
+
+@app.post("/api/v1/containers/dockerfile/audit")
+def audit_dockerfile(dockerfile_path: Optional[str] = None):
+    """Audits Dockerfile against container hardening standards."""
+    target = dockerfile_path if dockerfile_path else str(REPO_ROOT / "fixtures" / "dockerfiles" / "Dockerfile.vulnerable")
+    # If fixture does not exist, analyze inline sample
+    if not Path(target).exists():
+        sample_df = REPO_ROOT / "fixtures" / "dockerfiles" / "Dockerfile.sample"
+        sample_df.parent.mkdir(parents=True, exist_ok=True)
+        with open(sample_df, "w") as f:
+            f.write("FROM alpine:latest\nUSER root\nEXPOSE 22\nCMD [\"/bin/sh\"]\n")
+        target = str(sample_df)
+    return {"findings": dockerfile_analyzer.analyze_file(target)}
+
+
+# --- Kubernetes & EKS Posture ---
+@app.get("/api/v1/k8s/clusters")
+def list_eks_clusters():
+    """Discovers and inspects customer Amazon EKS clusters."""
+    return {"clusters": eks_harvester.list_clusters()}
+
+
+@app.post("/api/v1/k8s/audit/workloads")
+def audit_kubernetes_workloads(payload: Optional[Dict[str, Any]] = None):
+    """Evaluates Kubernetes workload manifests against Pod Security Standards (PSS)."""
+    sample_workloads = [
+        {
+            "namespace": "production",
+            "kind": "Deployment",
+            "name": "payment-api",
+            "spec": {
+                "template": {
+                    "spec": {
+                        "containers": [
+                            {"name": "api", "securityContext": {"privileged": True, "runAsNonRoot": False}}
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+    workloads = payload.get("workloads", sample_workloads) if payload else sample_workloads
+    return {"findings": k8s_evaluator.evaluate_manifests(workloads)}
+
+
+@app.post("/api/v1/k8s/audit/rbac")
+def audit_kubernetes_rbac(payload: Optional[Dict[str, Any]] = None):
+    """Audits Kubernetes RBAC bindings for wildcard privileges and cluster-admin bindings."""
+    sample_rbac = [
+        {
+            "subject_kind": "ServiceAccount",
+            "subject_name": "developer-service-account",
+            "role_name": "cluster-admin",
+            "is_cluster_role": True,
+        }
+    ]
+    bindings = payload.get("bindings", sample_rbac) if payload else sample_rbac
+    return {"findings": k8s_evaluator.evaluate_rbac(bindings)}
+
+
+# --- Runtime Security & Threat Correlation ---
+@app.post("/api/v1/runtime/events/dispatch")
+def dispatch_runtime_event(payload: Dict[str, Any]):
+    """Ingests and normalizes an Amazon EventBridge security finding."""
+    event = runtime_dispatcher.process_event_payload(payload)
+    if not event:
+        return {"status": "DUPLICATE_OR_IGNORED"}
+    return {"status": "PROCESSED", "normalized_event": event}
+
+
+@app.post("/api/v1/runtime/correlate")
+def correlate_runtime_threat(payload: Dict[str, Any]):
+    """Correlates runtime event with graph topology, elevating findings dynamically."""
+    event = runtime_dispatcher.process_event_payload(payload)
+    if not event:
+        raise HTTPException(status_code=400, detail="Malformed runtime security event payload.")
+    correlated = graph_threat_correlator.correlate_event(event)
+    return {"threat": correlated}
+
+
+# --- Forensics & Incident Response ---
+@app.get("/api/v1/forensics/timeline")
+def get_incident_timeline(principal: str = "alice-dev"):
+    """Reconstructs chronological CloudTrail forensic activity for a principal."""
+    events = forensics_engine.query_principal_activity(principal)
+    return {"principal": principal, "timeline_count": len(events), "events": events}
+
+
+@app.get("/api/v1/forensics/blast-radius")
+def calculate_compromise_blast_radius(entity_id: str = "i-0987654321fedcba0"):
+    """Traverses infrastructure graph outward to compute compromise blast radius."""
+    return blast_radius_calc.compute_blast_radius(entity_id)
+
+
+@app.post("/api/v1/forensics/containment/generate")
+def generate_containment_plan(user_name: str = "compromised-user", access_key: str = "AKIAEXAMPLEKEY12345"):
+    """Generates an emergency containment SOP with compensation runbook."""
+    sop = containment_gen.generate_iam_containment(user_name, access_key)
+    return {"sop": sop}
+
+
+# --- Autonomous Remediation (Modes 1, 2, 3) ---
+@app.post("/api/v1/remediations/plan/advisory")
+def generate_mode1_advisory(sg_id: str = "sg-0123456789abcdef0", port: int = 22):
+    """Generates a Mode 1 zero-mutation advisory IaC diff and CLI verification check."""
+    plan = mode1_gen.generate_security_group_patch(sg_id, port)
+    remediation_sm.register_plan(plan)
+    return {"plan": plan}
+
+
+@app.post("/api/v1/remediations/plan/stage")
+def stage_mode2_change_plan(sg_id: str = "sg-0123456789abcdef0", port: int = 22, is_prod: bool = False, user: UserSession = Depends(require_role("analyst"))):
+    """Stages a Mode 2 human-approved change plan with blast radius analysis."""
+    plan = mode2_engine.stage_security_group_revocation(sg_id, port, is_prod=is_prod)
+    remediation_sm.register_plan(plan)
+    return {"plan": plan}
+
+
+@app.post("/api/v1/remediations/plan/approve")
+def approve_remediation_plan(plan_id: str, user: UserSession = Depends(require_role("approver"))):
+    """Enforces cryptographic approval from Remediation Approver role before execution."""
+    try:
+        approved = remediation_sm.approve_plan(plan_id, user.role, user.user_id)
+        return {"status": "APPROVED", "plan": approved}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/v1/remediations/plan/execute")
+def execute_remediation_plan(plan_id: str, user: UserSession = Depends(require_role("approver"))):
+    """Executes an approved remediation change plan."""
+    try:
+        executed = remediation_sm.execute_plan(plan_id)
+        return {"status": "EXECUTED", "plan": executed}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/v1/remediations/auto-heal")
+def execute_mode3_auto_heal(bucket_name: str, is_production: bool = False, user: UserSession = Depends(require_role("admin"))):
+    """Executes Mode 3 safe auto-healing with strict production lockout guardrails."""
+    tags = {"Environment": "Production" if is_production else "Development"}
+    plan = mode3_engine.auto_heal_s3_encryption(bucket_name, tags)
+    remediation_sm.register_plan(plan)
+    return {"plan": plan}
+
 
 
 

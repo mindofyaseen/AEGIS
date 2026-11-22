@@ -1,0 +1,40 @@
+name: 'AEGIS DevSecOps Gatekeeper'
+description: 'Autonomous cloud security, attack path, and IaC gatekeeper for pull requests'
+author: 'AEGIS DevSecOps Team'
+
+inputs:
+  terraform_plan_json:
+    description: 'Path to Terraform plan JSON output'
+    required: false
+    default: ''
+  fail_on_severity:
+    description: 'Minimum severity to fail the CI build (LOW, MEDIUM, HIGH, CRITICAL)'
+    required: false
+    default: 'HIGH'
+  aegis_endpoint:
+    description: 'AEGIS In-Account API Gateway endpoint'
+    required: false
+    default: 'http://localhost:8000'
+  api_key:
+    description: 'AEGIS Machine-to-Machine API token'
+    required: false
+    default: ''
+
+outputs:
+  verdict:
+    description: 'Security gatekeeper verdict (PASS, WARN, BLOCK)'
+    value: ${{ steps.gatekeeper.outputs.verdict }}
+  exit_code:
+    description: 'Deterministic exit code (0, 1, 2)'
+    value: ${{ steps.gatekeeper.outputs.exit_code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run AEGIS Gatekeeper Analysis
+      id: gatekeeper
+      shell: bash
+      run: |
+        python -m cli.aegis_cli gatekeeper \
+          --plan "${{ inputs.terraform_plan_json }}" \
+          --fail-on "${{ inputs.fail_on_severity }}"
